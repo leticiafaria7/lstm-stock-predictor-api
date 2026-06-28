@@ -1,0 +1,4 @@
+.venv/
+dados/raw_trusted/
+
+__pycache__/
