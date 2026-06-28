@@ -1,4 +1,5 @@
 .venv/
 dados/raw_trusted/
+legacy/
 
 __pycache__/
