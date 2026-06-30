@@ -9,15 +9,13 @@
 ## 🎯 Sobre o projeto
 O projeto tem como objetivo a construção e deploy de um modelo de redes neurais Long-Short Term Memory (LSTM) para prever valor de fechamento das ações de uma empresa da bolsa.
 
-- [Sobre LSTM](docs/about_lstm.md) (em construção)
-- [Sobre as variáveis usadas no modelo](docs/about_stock_predicting_variables.md) (em construção)
+- [Sobre LSTM](docs/about_lstm.md)
+- [Sobre as variáveis usadas no modelo](docs/about_stock_predicting_variables.md)
 
 ## ⚙️ Funcionalidades
 - **Pré-processamento dos dados:**
   - Coleta dos dados com as bibliotecas `yfinance` e `bcb`
   - Feature engineering
-  - Armazenamento em banco
-  - Orquestração com Airflow
 - **Desenvolvimento do modelo LSTM:**
   - Construção
   - Treinamento
@@ -26,6 +24,8 @@ O projeto tem como objetivo a construção e deploy de um modelo de redes neurai
   - Monitoramento do modelo
 - **Deploy da API:**
   - Criação da API
+  - Armazenamento dos dados em banco
+  - Orquestração com Airflow
   - Criação do dash
   - Docker
   - Documentação

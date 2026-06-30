@@ -131,3 +131,34 @@ A média móvel exponencial (*Exponential Moving Average* — EMA), por sua vez,
   Histogram = MACD - Signal
   $$
 
+## Codificação cíclica de variáveis temporais
+
+Variáveis como dia da semana e mês possuem natureza cíclica, isto é, após o último valor do ciclo ocorre um retorno ao primeiro (sexta-feira é seguida por segunda-feira no conjunto de pregões, e dezembro é seguido por janeiro). Representá-las apenas como valores inteiros poderia induzir o modelo a interpretar que existe uma distância muito grande entre o último e o primeiro elemento do ciclo. Para preservar essa característica, foi utilizada uma codificação baseada nas funções seno e cosseno, que projeta cada categoria em um ponto sobre uma circunferência unitária.
+
+- **weekday_sin:** componente seno da codificação cíclica do dia da semana, considerando apenas os cinco dias úteis (segunda a sexta).
+
+  $$
+  weekday\_sin = \sin\left(2\pi\frac{weekday}{5}\right)
+  $$
+
+- **weekday_cos:** componente cosseno da codificação cíclica do dia da semana.
+
+  $$
+  weekday\_cos = \cos\left(2\pi\frac{weekday}{5}\right)
+  $$
+
+onde $weekday \in \{0,1,2,3,4\}$ representa segunda-feira até sexta-feira.
+
+- **month_sin:** componente seno da codificação cíclica do mês do ano.
+
+  $$
+  month\_sin = \sin\left(2\pi\frac{month-1}{12}\right)
+  $$
+
+- **month_cos:** componente cosseno da codificação cíclica do mês do ano.
+
+  $$
+  month\_cos = \cos\left(2\pi\frac{month-1}{12}\right)
+  $$
+
+onde $month \in \{1,\dots,12\}$ representa o mês da data da observação. A utilização conjunta das componentes seno e cosseno permite que a LSTM capture padrões sazonais sem introduzir descontinuidades artificiais entre categorias consecutivas do ciclo.

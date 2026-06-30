@@ -1,5 +1,6 @@
 .venv/
 dados/raw_trusted/
+dados/refined/
 legacy/
 
 __pycache__/
