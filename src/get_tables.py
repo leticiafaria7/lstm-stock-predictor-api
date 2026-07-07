@@ -17,7 +17,7 @@ pd.options.display.float_format = '{:.2f}'.format
 # Variáveis
 # ---------------------------------------------------------------------------------- #
 
-tickers = ['RENT3', 'LREN3', 'NATU3', 'SMFT3', 'MULT3', 'VBBR3', 'ABEV3']
+tickers = ['RENT3', 'LREN3', 'SMFT3', 'MULT3', 'VBBR3', 'ABEV3']
 
 sp_500 = """
 S&P 500, abreviação de Standard & Poor's 500, ou simplesmente S&P, 
