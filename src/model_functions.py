@@ -23,25 +23,13 @@ from tensorflow.keras.optimizers import Adam
 # ==============================================================================
 
 def build_lstm_sequences(window_size, scaled_data):
-
-    X = []
-    y = []
-
+    X, y = [], []
     for i in range(window_size, len(scaled_data)):
-
         # últimos WINDOW_SIZE dias
         X.append(scaled_data[i-window_size:i])
-
         # target = close do dia atual
         y.append(scaled_data[i, 0])
-
-    X = np.array(X)
-    y = np.array(y)
-
-    print(X.shape)
-    print(y.shape)
-
-    return X, y
+    return np.array(X), np.array(y)
 
 def split_temporal(X, y, train_size = 0.70, valid_size = 0.15):
 
@@ -74,16 +62,16 @@ def generate_lstm_model(units_1, dropout, units_2, learning_rate, X_train):
                    input_shape=(X_train.shape[1], X_train.shape[2])))
     model.add(Dropout(dropout))
     model.add(LSTM(units=units_2))
-    model.add(Dropout(0.2))
+    model.add(Dropout(dropout))
     model.add(Dense(16, activation="relu"))
     model.add(Dense(1))
 
-    model.compile(optimizer=Adam(learning_rate = learning_rate),
-                loss="mse", 
-                metrics=["mae"])
+    model.compile(
+        optimizer=Adam(learning_rate = learning_rate),
+        loss="mse", 
+        metrics=["mae"])
 
     return model
-
 
 def get_study_optuna(w, scaled_data, n_trials, ticker):
 
