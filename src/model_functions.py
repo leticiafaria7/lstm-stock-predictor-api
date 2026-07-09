@@ -5,6 +5,7 @@
 import numpy as np
 
 import optuna
+from optuna.visualization import (plot_optimization_history, plot_param_importances, plot_parallel_coordinate, plot_slice, plot_contour)
 
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import (
@@ -142,3 +143,18 @@ def get_study_optuna(train_scaled, valid_scaled, test_scaled, n_trials, ticker):
     print(study.best_value)
 
     return study
+
+def exibir_graficos_optuna(study):
+    
+    # Gráfico de histórico da otimização - mostra a convergência do score ao longo dos trials
+    fig = plot_optimization_history(study)
+    fig.show()
+
+    # Gráfico de importância dos parâmetros
+    fig = plot_param_importances(study)
+    fig.show()
+
+    # Gráfico do efeito individual de cada parâmetro
+    fig = plot_slice(study)
+    fig.show()
+    
