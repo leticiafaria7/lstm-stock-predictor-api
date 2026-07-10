@@ -2,5 +2,6 @@
 dados/raw_trusted/
 dados/refined/
 legacy/
+optuna_studies/
 
 __pycache__/
