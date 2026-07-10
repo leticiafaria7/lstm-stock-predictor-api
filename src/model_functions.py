@@ -19,6 +19,7 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.optimizers import Adam, Nadam, RMSprop
 from tensorflow.keras.regularizers import l2
+from tensorflow.keras import Input
 
 # ==============================================================================
 # Orquestração do modelo
@@ -68,11 +69,12 @@ def generate_lstm_model(units_1, dropout, units_2, learning_rate, recurrent_drop
     
     model = Sequential()
 
+    model.add(Input(shape=(X_train.shape[1], X_train.shape[2])))
+
     model.add(LSTM(units=units_1,
                    return_sequences=True,
-                   recurrent_dropout=recurrent_dropout, 
-                   kernel_regularizer=l2(l2_lambda),
-                   input_shape=(X_train.shape[1], X_train.shape[2])))
+                   recurrent_dropout=0, 
+                   kernel_regularizer=l2(l2_lambda)))
     model.add(Dropout(dropout))
     model.add(LSTM(units=units_2,
                    recurrent_dropout=recurrent_dropout,
@@ -97,17 +99,18 @@ def get_study_optuna(train_scaled, valid_scaled, test_scaled, n_trials, ticker):
     def objective(trial):
 
         # Hiperparâmetros
-        units_1 = trial.suggest_int("units_1", 32, 256, step=32)
-        units_2 = trial.suggest_int("units_2", 16, 128, step=16)
+        units_1 = trial.suggest_int("units_1", 32, 128, step=32)
+        units_2 = trial.suggest_int("units_2", 16, 64, step=16)
         dropout = trial.suggest_float("dropout", 0.10, 0.50)
-        recurrent_dropout = trial.suggest_float("recurrent_dropout", 0.0, 0.40)
-        learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-2, log=True)
+        # recurrent_dropout = trial.suggest_float("recurrent_dropout", 0.0, 0.40)
+        recurrent_dropout = 0
+        learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
         batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128])
         l2_lambda = trial.suggest_float("l2", 1e-6, 1e-2, log=True)
         dense_units = trial.suggest_categorical("dense_units", [8, 16, 32, 64])
         n_dense = trial.suggest_int("n_dense", 1, 2)
         optimizer_name = trial.suggest_categorical("optimizer", ["Adam", "Nadam", "RMSprop"])
-        window_size = trial.suggest_categorical("window_size", [30, 60, 90, 120, 180, 360])
+        window_size = trial.suggest_categorical("window_size", [20, 30, 60, 90, 120])
 
         # Modelo
         X_train, y_train = build_lstm_sequences(window_size, train_scaled)
