@@ -40,8 +40,6 @@ def get_dimension_table_tickers(tickers, path_dim_tickers, save_folder_path):
 
     dim_tickers.to_parquet(f"{save_folder_path}/dim_tickers.parquet", engine = 'pyarrow')
 
-    # return dim_tickers
-
 ## Histórico de tickers
 
 def get_historical_data_tickers(tickers, save_folder_path, start = '2016-06-20', end = '2026-06-20'):
@@ -57,13 +55,9 @@ def get_historical_data_tickers(tickers, save_folder_path, start = '2016-06-20',
     df = df.stack(level="Ticker", future_stack=True).reset_index()
     df["Ticker"] = df["Ticker"].str.replace(".SA", "", regex=False)
     df['Date'] = pd.to_datetime(df['Date']).dt.date
-    # df['amplitude_pct'] = (df['High'] - df['Low']) / df['Open']
-    # df['var_dia_pct'] = (df['Close'] - df['Open']) / df['Open']
     df['Date'] = pd.to_datetime(df['Date'])
 
     df.to_parquet(f"{save_folder_path}/historical_data_tickers.parquet", engine = 'pyarrow')
-
-    # return df
 
 # Histórico dos outros ativos
 
@@ -89,18 +83,12 @@ def get_historical_data_assets(save_folder_path, start = '2016-06-20', end = '20
     df_ativos['Date'] = pd.to_datetime(df_ativos['Date']).dt.date
     df_ativos['Ticker'] = df_ativos['Ticker'].map(ativos)
 
-    # df_ativos['amplitude_pct'] = (df_ativos['High'] - df_ativos['Low']) / df_ativos['Open']
-    # df_ativos['var_dia_pct'] = (df_ativos['Close'] - df_ativos['Open']) / df_ativos['Open']
-
     df_ativos = df_ativos.pivot(index = ['Date'], columns = 'Ticker', 
-                                values = ['Close'#, 'amplitude_pct', 'var_dia_pct'
-                                          ]).reset_index()
+                                values = ['Close']).reset_index()
     df_ativos.columns = ['_'.join(map(str, col)).strip('_') for col in df_ativos.columns.values]
     df_ativos['Date'] = pd.to_datetime(df_ativos['Date'])
 
     df_ativos.to_parquet(f"{save_folder_path}/historical_data_assets.parquet", engine = 'pyarrow')
-
-    # return df_ativos
 
 # Histórico dos índices brasileiros
 
@@ -118,8 +106,6 @@ def get_historical_br_indexes(save_folder_path, start = None):
     dados['Date'] = pd.to_datetime(dados['Date'])
 
     dados.to_parquet(f"{save_folder_path}/historical_data_br_indexes.parquet", engine = 'pyarrow')
-
-    # return dados
 
 # ---------------------------------------------------------------------------------- #
 # Funções para cálculos de métricas adicionais
@@ -143,13 +129,6 @@ def calculate_rsi(df, close_column = 'close'):
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
 
-    # RSI -----------------------------------------------------
-    # avg_gain = gain.rolling(14).mean()
-    # avg_loss = loss.rolling(14).mean()
-    # rs = avg_gain / avg_loss
-
-    # df["rsi"] = 100 - (100 / (1 + rs))
-
     # RSI Wilder (média exponencial) --------------------------
     avg_gain = gain.ewm(alpha=1/14, adjust=False).mean()
     avg_loss = loss.ewm(alpha=1/14, adjust=False).mean()
@@ -165,7 +144,6 @@ def calculate_macd(df, close_column = 'close'):
 
     df["macd"] = ema12 - ema26
     df["macd_signal"] = df["macd"].ewm(span=9, adjust=False).mean()
-    # df["macd_hist"] = df["macd"] - df["macd_signal"]
 
     return df
 
@@ -200,8 +178,6 @@ def get_analitical_table(save_folder_path, ticker):
 
     for asset in ['sp_500', 'dolar', 'ibovespa']:
         tmp[f"close_{asset}"] = tmp[f"close_{asset}"].ffill()
-        # for metrica in ['amplitude_pct', 'var_dia_pct']:
-        #     tmp[f"{metrica}_{asset}"] = tmp[f"{metrica}_{asset}"].fillna(0)
 
     # métricas adicionais -------------------------------------------------------------------
 

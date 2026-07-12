@@ -6,3 +6,6 @@ optuna_studies/
 
 __pycache__/
 .DS_Store
+
+.env
+logs/
