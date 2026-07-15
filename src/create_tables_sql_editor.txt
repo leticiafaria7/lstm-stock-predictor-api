@@ -1,0 +1,47 @@
+-- =====================================================================
+-- historical_tickers
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS historical_tickers (
+
+    id BIGSERIAL PRIMARY KEY,
+
+    "Date" DATE NOT NULL,
+    "Ticker" VARCHAR(20) NOT NULL,
+
+    "Open" DOUBLE PRECISION,
+    "High" DOUBLE PRECISION,
+    "Low" DOUBLE PRECISION,
+    "Close" DOUBLE PRECISION,
+    "Volume" DOUBLE PRECISION,
+
+    CONSTRAINT uq_historical_tickers
+        UNIQUE ("Date","Ticker")
+);
+
+
+-- =====================================================================
+-- historical_assets
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS historical_assets (
+
+    "Date" DATE PRIMARY KEY,
+
+    "Close_Ibovespa" DOUBLE PRECISION,
+    "Close_SP_500" DOUBLE PRECISION,
+    "Close_Dolar" DOUBLE PRECISION
+);
+
+
+-- =====================================================================
+-- historical_indexes
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS historical_indexes (
+
+    "Date" DATE PRIMARY KEY,
+
+    "Selic" DOUBLE PRECISION,
+    "IPCA" DOUBLE PRECISION
+);
