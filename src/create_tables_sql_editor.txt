@@ -45,3 +45,55 @@ CREATE TABLE IF NOT EXISTS historical_indexes (
     "Selic" DOUBLE PRECISION,
     "IPCA" DOUBLE PRECISION
 );
+
+-- =====================================================================
+-- grant access and disable security to write
+-- =====================================================================
+
+GRANT USAGE ON SCHEMA public TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE historical_tickers
+TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE historical_assets
+TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE historical_indexes
+TO anon;
+
+GRANT USAGE, SELECT
+ON SEQUENCE historical_tickers_id_seq
+TO anon;
+
+GRANT USAGE, SELECT
+ON SEQUENCE historical_tickers_id_seq
+TO authenticated;
+
+ALTER TABLE historical_tickers DISABLE ROW LEVEL SECURITY;
+ALTER TABLE historical_assets DISABLE ROW LEVEL SECURITY;
+ALTER TABLE historical_indexes DISABLE ROW LEVEL SECURITY;
+
+-- =====================================================================
+-- create table predictions
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS predictions (
+
+    "Date" DATE NOT NULL,
+    "Ticker" VARCHAR(20) NOT NULL,
+
+    "Close" DOUBLE PRECISION NOT NULL,
+    "Predict_D1" DOUBLE PRECISION NOT NULL,
+
+    PRIMARY KEY ("Date","Ticker")
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE predictions
+TO anon;
+
+ALTER TABLE predictions
+DISABLE ROW LEVEL SECURITY;

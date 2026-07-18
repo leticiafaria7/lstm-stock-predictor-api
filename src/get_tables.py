@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 from bcb import sgs
+from bcb.exceptions import SGSError
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
@@ -88,18 +89,22 @@ def get_historical_data_assets(start = '2016-06-20', end = None):
 
 # Histórico dos índices brasileiros
 
-def get_historical_br_indexes(start = None):
+def get_historical_br_indexes(start=None):
 
-    if start == None:
-        dez_anos_atras = date.today() - relativedelta(years=10)
-        dados = sgs.get({"Selic": 11, "IPCA": 433}, start = dez_anos_atras)
-    else:
-        dados = sgs.get({"Selic": 11, "IPCA": 433}, start = start)
+    try:
+        if start is None:
+            start = date.today() - relativedelta(years=10)
+
+        dados = sgs.get({"Selic": 11, "IPCA": 433}, start=start)
+
+    except SGSError:
+        return pd.DataFrame(columns=["Date", "Selic", "IPCA"])
 
     dados["Selic"] = dados["Selic"].ffill()
     dados["IPCA"] = dados["IPCA"].ffill()
+
     dados = dados.dropna().reset_index()
-    dados['Date'] = pd.to_datetime(dados['Date'])
+    dados["Date"] = pd.to_datetime(dados["Date"])
 
     return dados
 
@@ -147,11 +152,7 @@ def calculate_macd(df, close_column = 'close'):
 # Obtenção da tabela analítica para modelo
 # ---------------------------------------------------------------------------------- #
 
-def get_analitical_table(save_folder_path, ticker):
-
-    df_hist_tickers = pd.read_parquet(f"{save_folder_path}/historical_data_tickers.parquet", engine = 'pyarrow')
-    df_ativos = pd.read_parquet(f"{save_folder_path}/historical_data_assets.parquet", engine = 'pyarrow')
-    df_br_indexes = pd.read_parquet(f"{save_folder_path}/historical_data_br_indexes.parquet", engine = 'pyarrow')
+def get_analitical_table(ticker, df_hist_tickers, df_ativos, df_br_indexes):
 
     # juntar tabelas
     tmp = df_hist_tickers[df_hist_tickers['Ticker'] == ticker].copy()
@@ -166,7 +167,6 @@ def get_analitical_table(save_folder_path, ticker):
 
     # filtrar período de dados
     tmp = tmp[tmp['date'] >= pd.to_datetime('2016-07-01')]
-    tmp = tmp[tmp['date'] < pd.to_datetime('2026-06-01')]
 
     # completar nulls
     tmp['selic'] = tmp['selic'].ffill()
