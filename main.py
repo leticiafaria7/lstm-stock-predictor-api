@@ -15,7 +15,7 @@ from src.utils import tickers
 
 import os
 
-# from src.api import api_endpoints, home_layout, login_routes
+from src.api import api_endpoints, home_numbers_and_plots
 
 # ----------------------------------------------------------------------------------------------- #
 # Inicializações
@@ -23,20 +23,20 @@ import os
 
 # iniciar aplicação
 app = Flask(__name__,
-            # template_folder = os.path.join(BASE_DIR, "src", "templates"),
-            # static_folder = os.path.join(BASE_DIR, "src", "static")
+            template_folder = os.path.join(BASE_DIR, "src", "templates"),
+            static_folder = os.path.join(BASE_DIR, "src", "static")
             )
 
 app.config.from_object(Config)
 
 # inicializar as instâncias no app
-# swagger.init_app(app)
+swagger.init_app(app)
 # jwt.init_app(app)
 # setup_logging(app)
 register_request_logging(app, supabase)
 
 # registrar as rotas
-# app.register_blueprint(bp)
+app.register_blueprint(bp)
 
 # ----------------------------------------------------------------------------------------------- #
 # Executar o app localmente

@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Modelo LSTM para Previsão de Ações</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+<style>
+
+:root{
+--c1:#6f1d1b;
+--c2:#bb9457;
+--c3:#432818;
+--c4:#99582a;
+--c5:#ffe6a7;
+--bg:#f7f5f2;
+}
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Roboto',sans-serif;
+scroll-behavior:smooth;
+}
+
+body{
+background:var(--bg);
+display:flex;
+color:var(--c3);
+}
+
+aside{
+position:fixed;
+left:0;
+top:0;
+width:250px;
+height:100vh;
+background:var(--c1);
+padding:40px 25px;
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+z-index:999;
+}
+
+.logo{
+color:white;
+font-size:26px;
+font-weight:700;
+line-height:1.3;
+margin-bottom:45px;
+}
+
+.menu{
+display:flex;
+flex-direction:column;
+gap:8px;
+}
+
+.menu a{
+text-decoration:none;
+padding:14px 18px;
+border-radius:12px;
+color:white;
+font-weight:500;
+transition:.25s;
+}
+
+.menu a:hover,
+.menu a.active{
+background:var(--c2);
+color:var(--c3);
+}
+
+.social{
+display:flex;
+justify-content:center;
+gap:18px;
+margin-top:40px;
+}
+
+.social a{
+width:54px;
+height:54px;
+background:white;
+border-radius:16px;
+display:flex;
+align-items:center;
+justify-content:center;
+transition:.25s;
+}
+
+.social a:hover{
+transform:translateY(-4px);
+box-shadow:0 8px 25px rgba(0,0,0,.18);
+}
+
+.social img{
+width:28px;
+height:28px;
+}
+
+main{
+margin-left:250px;
+width:calc(100% - 250px);
+}
+
+section{
+min-height:100vh;
+padding:70px;
+display:flex;
+flex-direction:column;
+justify-content:center;
+}
+
+.section-title{
+font-size:38px;
+font-weight:700;
+color:var(--c1);
+margin-bottom:15px;
+}
+
+.section-subtitle{
+font-size:18px;
+color:#666;
+margin-bottom:45px;
+max-width:850px;
+line-height:1.7;
+}
+
+.hero{
+display:flex;
+flex-direction:column;
+justify-content:center;
+}
+
+.hero h1{
+font-size:56px;
+font-weight:700;
+color:var(--c1);
+max-width:900px;
+line-height:1.15;
+margin-bottom:25px;
+}
+
+.hero p{
+font-size:22px;
+color:#666;
+max-width:900px;
+line-height:1.8;
+}
+
+.hero-cards{
+display:flex;
+gap:25px;
+margin-top:55px;
+flex-wrap:wrap;
+}
+
+.hero-card{
+background:white;
+padding:30px;
+border-radius:24px;
+box-shadow:0 12px 35px rgba(0,0,0,.08);
+min-width:230px;
+flex:1;
+}
+
+.hero-card h2{
+font-size:42px;
+color:var(--c1);
+margin-bottom:8px;
+}
+
+.hero-card span{
+font-size:16px;
+color:#777;
+}
+
+.card{
+background:white;
+border-radius:24px;
+box-shadow:0 10px 30px rgba(0,0,0,.08);
+padding:30px;
+}
+
+.grid{
+display:grid;
+gap:25px;
+}
+
+.grid-2{
+grid-template-columns:repeat(2,1fr);
+}
+
+.grid-3{
+grid-template-columns:repeat(3,1fr);
+}
+
+.grid-4{
+grid-template-columns:repeat(4,1fr);
+}
+
+@media(max-width:1200px){
+
+aside{
+display:none;
+}
+
+main{
+margin:0;
+width:100%;
+}
+
+.grid-2,
+.grid-3,
+.grid-4{
+grid-template-columns:1fr;
+}
+
+section{
+padding:45px;
+}
+
+.hero h1{
+font-size:42px;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<aside>
+
+<div>
+
+<div class="logo">
+Modelo LSTM<br>
+Ações B3
+</div>
+
+<nav class="menu">
+
+<a href="#inicio" class="active">Início</a>
+
+<a href="#acoes">Ações</a>
+
+<a href="#features">Features</a>
+
+<a href="#metricas">Modelos</a>
+
+<a href="#api">API</a>
+
+</nav>
+
+</div>
+
+<div class="social">
+
+<a href="/swagger" target="_blank">
+<img src="{{ url_for('static',filename='swagger.svg') }}">
+</a>
+
+<a href="https://github.com/leticiafaria7" target="_blank">
+<img src="{{ url_for('static',filename='github.svg') }}">
+</a>
+
+</div>
+
+</aside>
+
+<main>
+
+<section id="inicio" class="hero">
+
+<h1>Modelo LSTM para previsão do preço de fechamento de ações da B3</h1>
+
+<p>
+Esta aplicação disponibiliza uma API em Flask para consulta das previsões de fechamento para D+1 utilizando modelos LSTM treinados individualmente para cada ativo, com atualização automática das bases históricas armazenadas no Supabase.
+</p>
+
+<div class="hero-cards">
+
+<div class="hero-card">
+<h2>{{ total_tickers }}</h2>
+<span>Tickers suportados</span>
+</div>
+
+<div class="hero-card">
+<h2>{{ total_rows }}</h2>
+<span>Registros históricos</span>
+</div>
+
+<div class="hero-card">
+<h2>{{ last_update }}</h2>
+<span>Última atualização</span>
+</div>
+
+<div class="hero-card">
+<h2>{{ next_day }}</h2>
+<span>Previsão disponível</span>
+</div>
+
+</div>
+
+</section>
+
+<section id="acoes">
+
+<h2 class="section-title">Ações utilizadas</h2>
+
+<p class="section-subtitle">
+Os modelos foram treinados individualmente para cada ativo utilizando dados históricos de mercado,
+indicadores macroeconômicos e indicadores técnicos calculados diariamente.
+</p>
+
+<div class="grid grid-4">
+
+{% for empresa in empresas %}
+
+<div class="card empresa-card">
+
+<h2>{{ empresa.ticker }}</h2>
+
+<h3>{{ empresa.empresa }}</h3>
+
+<p><strong>Setor</strong></p>
+<span>{{ empresa.setor }}</span>
+
+<p style="margin-top:18px;"><strong>Subsetor</strong></p>
+<span>{{ empresa.subsetor }}</span>
+
+<p style="margin-top:18px;"><strong>Segmento</strong></p>
+<span>{{ empresa.segmento }}</span>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+<div style="height:35px"></div>
+
+<div class="card">
+
+<h3 style="margin-bottom:20px;color:var(--c1);font-size:24px;">
+Período histórico disponível
+</h3>
+
+<div id="historyChart" style="height:520px;"></div>
+
+</div>
+
+</section>
+
+<style>
+
+.empresa-card{
+transition:.25s;
+cursor:pointer;
+}
+
+.empresa-card:hover{
+transform:translateY(-8px);
+box-shadow:0 15px 35px rgba(0,0,0,.12);
+}
+
+.empresa-card h2{
+font-size:34px;
+color:var(--c1);
+margin-bottom:6px;
+}
+
+.empresa-card h3{
+font-size:18px;
+margin-bottom:22px;
+color:var(--c4);
+}
+
+.empresa-card p{
+font-size:13px;
+font-weight:700;
+color:var(--c1);
+margin-bottom:4px;
+}
+
+.empresa-card span{
+font-size:15px;
+color:#666;
+line-height:1.5;
+display:block;
+}
+
+</style>
+
+<script>
+
+
+const periodos={{ history_chart|safe }};
+
+Plotly.newPlot(
+"historyChart",
+periodos.data,
+periodos.layout,
+{
+responsive:true,
+displayModeBar:false
+}
+);
+
+</script>
+
+<section id="features">
+
+<h2 class="section-title">Features utilizadas pelo modelo</h2>
+
+<p class="section-subtitle">
+Cada previsão utiliza variáveis de preço, indicadores macroeconômicos,
+estatísticas de tendência, volatilidade, momentum e codificações temporais.
+Clique em uma feature para visualizar sua descrição.
+</p>
+
+<div id="featureGrid" class="feature-grid">
+
+{% for feature in features %}
+
+<div class="feature-box"
+data-description="{{ feature.description }}"
+onclick="showFeature(this)">
+
+{{ feature.name }}
+
+</div>
+
+{% endfor %}
+
+</div>
+
+<div style="height:30px"></div>
+
+<div id="featureDescription" class="feature-description">
+
+Selecione uma feature acima para visualizar sua descrição.
+
+</div>
+
+</section>
+
+<style>
+
+.feature-grid{
+
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+gap:16px;
+
+}
+
+.feature-box{
+
+background:white;
+border-radius:18px;
+padding:18px;
+text-align:center;
+font-weight:600;
+cursor:pointer;
+transition:.25s;
+box-shadow:0 8px 22px rgba(0,0,0,.08);
+
+}
+
+.feature-box:hover{
+
+background:var(--c2);
+color:white;
+transform:translateY(-4px);
+
+}
+
+.feature-box.active{
+
+background:var(--c1);
+color:white;
+
+}
+
+.feature-description{
+
+background:white;
+padding:30px;
+border-radius:22px;
+min-height:140px;
+font-size:18px;
+line-height:1.8;
+box-shadow:0 12px 30px rgba(0,0,0,.08);
+
+}
+
+</style>
+
+<script>
+
+function showFeature(element){
+
+document.querySelectorAll(".feature-box")
+.forEach(e=>e.classList.remove("active"));
+
+element.classList.add("active");
+
+document.getElementById("featureDescription").innerHTML=
+element.dataset.description;
+
+}
+
+</script>
+
+<section id="metricas">
+
+<h2 class="section-title">Avaliação dos modelos</h2>
+
+<p class="section-subtitle">
+Cada ativo possui um modelo LSTM treinado independentemente. Ao selecionar um ticker,
+as métricas e o gráfico de desempenho são atualizados dinamicamente.
+</p>
+
+<div class="metrics-layout">
+
+<div class="ticker-selector">
+
+{% for ticker in tickers %}
+
+<div class="ticker-card {% if loop.first %}selected{% endif %}"
+onclick="changeTicker('{{ ticker }}',this)">
+
+<div class="ticker-symbol">
+
+{{ ticker }}
+
+</div>
+
+<div class="ticker-company">
+
+{{ empresas_dict[ticker] }}
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+<div class="metrics-panel">
+
+<div class="metrics-header">
+
+<div class="metric-card">
+
+<div class="metric-title">
+
+MAE
+
+</div>
+
+<div id="maeValue" class="metric-value"></div>
+
+</div>
+
+<div class="metric-card">
+
+<div class="metric-title">
+
+RMSE
+
+</div>
+
+<div id="rmseValue" class="metric-value"></div>
+
+</div>
+
+<div class="metric-card">
+
+<div class="metric-title">
+
+MAPE
+
+</div>
+
+<div id="mapeValue" class="metric-value"></div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<div id="predictionChart"
+style="height:520px;">
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<style>
+
+.metrics-layout{
+
+display:grid;
+grid-template-columns:280px 1fr;
+gap:35px;
+
+}
+
+.ticker-selector{
+
+display:flex;
+flex-direction:column;
+gap:18px;
+
+}
+
+.ticker-card{
+
+background:white;
+padding:22px;
+border-radius:22px;
+cursor:pointer;
+transition:.25s;
+box-shadow:0 8px 25px rgba(0,0,0,.08);
+
+}
+
+.ticker-card:hover{
+
+transform:translateY(-5px);
+
+}
+
+.ticker-card.selected{
+
+background:var(--c1);
+color:white;
+
+}
+
+.ticker-symbol{
+
+font-size:34px;
+font-weight:700;
+
+}
+
+.ticker-company{
+
+font-size:15px;
+margin-top:8px;
+opacity:.9;
+
+}
+
+.metrics-panel{
+
+display:flex;
+flex-direction:column;
+gap:28px;
+
+}
+
+.metrics-header{
+
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:20px;
+
+}
+
+.metric-card{
+
+background:white;
+padding:24px;
+border-radius:22px;
+text-align:center;
+box-shadow:0 8px 25px rgba(0,0,0,.08);
+
+}
+
+.metric-title{
+
+font-size:16px;
+color:#777;
+
+}
+
+.metric-value{
+
+font-size:38px;
+font-weight:700;
+color:var(--c1);
+margin-top:12px;
+
+}
+
+@media(max-width:1200px){
+
+.metrics-layout{
+
+grid-template-columns:1fr;
+
+}
+
+.metrics-header{
+
+grid-template-columns:1fr;
+
+}
+
+}
+
+</style>
+
+<script>
+
+const metricas={{ metrics|safe }};
+const graficos={{ prediction_charts|safe }};
+
+function animateChart(data){
+
+Plotly.newPlot(
+"predictionChart",
+[],
+data.layout,
+{
+responsive:true,
+displayModeBar:false
+}
+);
+
+let traces=[];
+
+data.data.forEach((trace,index)=>{
+
+setTimeout(()=>{
+
+traces.push(trace);
+
+Plotly.react(
+"predictionChart",
+traces,
+data.layout,
+{
+responsive:true,
+displayModeBar:false
+}
+);
+
+},index*450);
+
+});
+
+}
+
+function changeTicker(ticker,element){
+
+document.querySelectorAll(".ticker-card")
+.forEach(card=>card.classList.remove("selected"));
+
+element.classList.add("selected");
+
+document.getElementById("maeValue").innerHTML=
+metricas[ticker].MAE.toFixed(3);
+
+document.getElementById("rmseValue").innerHTML=
+metricas[ticker].RMSE.toFixed(3);
+
+document.getElementById("mapeValue").innerHTML=
+metricas[ticker]["MAPE (%)"].toFixed(2)+"%";
+
+animateChart(graficos[ticker]);
+
+}
+
+window.addEventListener("load",()=>{
+
+changeTicker(
+"{{ tickers[0] }}",
+document.querySelector(".ticker-card")
+);
+
+});
+
+</script>
+
+<section id="api">
+
+<h2 class="section-title">Endpoints da API</h2>
+
+<p class="section-subtitle">
+Os dados históricos são sincronizados diariamente com o Supabase. Após a atualização,
+as previsões são recalculadas utilizando os modelos LSTM treinados para cada ativo e
+ficam imediatamente disponíveis pelos endpoints abaixo.
+</p>
+
+<div class="api-table">
+
+<div class="api-header method">Método</div>
+<div class="api-header route">Endpoint</div>
+<div class="api-header desc">Descrição</div>
+
+<div class="api-method post">POST</div>
+<div class="api-route">/api/v1/predict/&lt;ticker&gt;</div>
+<div class="api-desc">
+Retorna o preço previsto para o próximo pregão juntamente com o último fechamento disponível.
+</div>
+
+<div class="api-method get">GET</div>
+<div class="api-route">/api/v1/models</div>
+<div class="api-desc">
+Lista todos os tickers disponíveis e informações do modelo armazenado.
+</div>
+
+<div class="api-method get">GET</div>
+<div class="api-route">/api/v1/models/&lt;ticker&gt;/metrics</div>
+<div class="api-desc">
+Retorna as métricas de avaliação (MAE, RMSE, MAPE, R² e demais indicadores).
+</div>
+
+<div class="api-method get">GET</div>
+<div class="api-route">/health</div>
+<div class="api-desc">
+Health Check utilizado por Load Balancer e Kubernetes.
+</div>
+
+<div class="api-method get">GET</div>
+<div class="api-route">/metrics</div>
+<div class="api-desc">
+Métricas Prometheus da aplicação (latência, erros e quantidade de requisições).
+</div>
+
+</div>
+
+<div style="height:35px"></div>
+
+<div class="card">
+
+<h3 style="color:var(--c1);margin-bottom:15px;">
+Atualização diária
+</h3>
+
+<p style="font-size:18px;line-height:1.8;color:#555;">
+
+Sempre que o processo de sincronização é executado são realizadas as etapas:
+
+</p>
+
+<ul class="pipeline-list">
+
+<li>Atualização das séries históricas de ações.</li>
+
+<li>Atualização dos índices econômicos.</li>
+
+<li>Atualização dos ativos internacionais.</li>
+
+<li>Construção da tabela analítica.</li>
+
+<li>Geração das previsões para D+1.</li>
+
+<li>Persistência das previsões no Supabase.</li>
+
+</ul>
+
+</div>
+
+</section>
+
+<style>
+
+.api-table{
+
+display:grid;
+grid-template-columns:150px 360px 1fr;
+border-radius:24px;
+overflow:hidden;
+box-shadow:0 10px 30px rgba(0,0,0,.08);
+
+}
+
+.api-header{
+
+background:var(--c1);
+color:white;
+padding:22px;
+font-weight:700;
+
+}
+
+.api-method,
+.api-route,
+.api-desc{
+
+padding:22px;
+background:white;
+border-bottom:1px solid #eee;
+display:flex;
+align-items:center;
+
+}
+
+.api-method{
+
+font-weight:700;
+justify-content:center;
+
+}
+
+.api-method.get{
+
+color:#1565C0;
+
+}
+
+.api-method.post{
+
+color:#C62828;
+
+}
+
+.api-route{
+
+font-family:monospace;
+font-size:15px;
+
+}
+
+.pipeline-list{
+
+margin-top:18px;
+margin-left:25px;
+line-height:2;
+
+}
+
+@media(max-width:1200px){
+
+.api-table{
+
+grid-template-columns:1fr;
+
+}
+
+.api-header{
+
+display:none;
+
+}
+
+.api-method{
+
+justify-content:flex-start;
+font-size:18px;
+
+}
+
+}
+
+</style>
+
+<footer>
+
+<div>
+
+<strong>Modelo LSTM para previsão de ações</strong>
+
+<p>
+Projeto desenvolvido utilizando Flask, TensorFlow, Supabase, Plotly e Docker.
+</p>
+
+</div>
+
+<div>
+
+<p>
+
+Dados financeiros:
+Yahoo Finance
+
+</p>
+
+<p>
+
+Indicadores econômicos:
+Banco Central do Brasil
+
+</p>
+
+</div>
+
+</footer>
+
+<style>
+
+footer{
+
+margin-top:80px;
+padding:50px 70px;
+background:var(--c3);
+color:white;
+
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:50px;
+
+}
+
+footer strong{
+
+font-size:22px;
+
+}
+
+footer p{
+
+margin-top:8px;
+opacity:.85;
+line-height:1.7;
+
+}
+
+@media(max-width:900px){
+
+footer{
+
+flex-direction:column;
+align-items:flex-start;
+
+}
+
+}
+
+</style>
+
+<script>
+
+const observer=new IntersectionObserver(entries=>{
+
+entries.forEach(entry=>{
+
+if(entry.isIntersecting){
+
+document
+.querySelectorAll(".menu a")
+.forEach(link=>link.classList.remove("active"));
+
+const current=document.querySelector(
+`.menu a[href="#${entry.target.id}"]`
+);
+
+if(current)
+current.classList.add("active");
+
+}
+
+});
+
+},{
+threshold:.45
+});
+
+document
+.querySelectorAll("section")
+.forEach(section=>observer.observe(section));
+
+</script>
+
+<script>
+
+window.addEventListener("scroll",()=>{
+
+const cards=document.querySelectorAll(".card,.hero-card,.empresa-card,.ticker-card");
+
+cards.forEach(card=>{
+
+const rect=card.getBoundingClientRect();
+
+if(rect.top<window.innerHeight-80){
+
+card.style.opacity="1";
+card.style.transform="translateY(0px)";
+
+}
+
+});
+
+});
+
+document.querySelectorAll(
+".card,.hero-card,.empresa-card,.ticker-card"
+).forEach(card=>{
+
+card.style.opacity="0";
+card.style.transform="translateY(40px)";
+card.style.transition="all .7s ease";
+
+});
+
+window.dispatchEvent(new Event("scroll"));
+
+</script>
+
+</main>
+
+</body>
+
+</html>
