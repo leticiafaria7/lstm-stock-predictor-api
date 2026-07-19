@@ -260,6 +260,16 @@ def rebuild_predictions(ticker, hist, assets, indexes):
     }
 
 
+# paleta extraída da identidade visual do dashboard (mesmas cores do home.html)
+CHART_COLORS = {
+    "real": "#432818",     # espresso
+    "pred": "#99582a",     # rust
+    "naive": "#bb9457",    # tan
+    "grid": "rgba(67,40,24,0.08)",
+    "text": "#6b5240"
+}
+
+
 def build_prediction_chart(result, ticker):
 
     fig = go.Figure()
@@ -270,7 +280,7 @@ def build_prediction_chart(result, ticker):
             y=result["real"],
             mode="lines",
             name="Real",
-            line=dict(width=3)
+            line=dict(width=2.6, color=CHART_COLORS["real"])
         )
     )
 
@@ -280,7 +290,7 @@ def build_prediction_chart(result, ticker):
             y=result["pred"],
             mode="lines",
             name="LSTM",
-            line=dict(width=3)
+            line=dict(width=2.6, color=CHART_COLORS["pred"])
         )
     )
 
@@ -290,71 +300,34 @@ def build_prediction_chart(result, ticker):
             y=result["naive"],
             mode="lines",
             name="Naive",
-            line=dict(width=3)
+            line=dict(width=1.8, color=CHART_COLORS["naive"], dash="dot")
         )
     )
 
     fig.update_layout(
-        title=f"{ticker} - Predição x Real",
-        template="plotly_white",
+        title=None,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Roboto, sans-serif", size=12, color=CHART_COLORS["text"]),
         hovermode="x unified",
         height=420,
-        margin=dict(l=10, r=10, t=45, b=10),
+        margin=dict(l=10, r=10, t=15, b=10),
         legend=dict(
             orientation="h",
-            y=1.08,
-            x=0
+            y=1.12,
+            x=0,
+            font=dict(size=11)
         ),
         xaxis=dict(
             showgrid=False,
-            rangeslider_visible=False
+            rangeslider_visible=False,
+            tickfont=dict(size=10, color=CHART_COLORS["text"])
         ),
         yaxis=dict(
             showgrid=True,
-            zeroline=False
-        )
-    )
-
-    return fig.to_json()
-
-
-def build_period_chart():
-
-    fig = go.Figure()
-
-    colors = {
-        "ABEV3": "#6f1d1b",
-        "RENT3": "#bb9457",
-        "LREN3": "#99582a",
-        "SMFT3": "#432818"
-    }
-
-    y = list(range(len(TICKERS)))
-
-    for i, ticker in enumerate(TICKERS):
-
-        info = COMPANIES[ticker]
-
-        fig.add_trace(
-            go.Scatter(
-                x=[info["inicio"], info["fim"]],
-                y=[i, i],
-                mode="lines+markers",
-                name=ticker,
-                line=dict(width=12, color=colors[ticker]),
-                marker=dict(size=10)
-            )
-        )
-
-    fig.update_layout(
-        template="plotly_white",
-        height=320,
-        showlegend=False,
-        margin=dict(l=10, r=10, t=25, b=20),
-        xaxis_title="Período disponível",
-        yaxis=dict(
-            tickvals=y,
-            ticktext=TICKERS
+            gridcolor=CHART_COLORS["grid"],
+            zeroline=False,
+            tickfont=dict(size=10, color=CHART_COLORS["text"])
         )
     )
 
@@ -380,9 +353,7 @@ def load_all_results():
         metrics[ticker] = result["metrics"]
         charts[ticker] = build_prediction_chart(result, ticker)
 
-    period_chart = build_period_chart()
-
-    return metrics, charts, period_chart
+    return metrics, charts
 
 
 def build_company_cards():
@@ -476,7 +447,7 @@ def build_sidebar():
 
 def build_dashboard():
 
-    metrics, charts, period_chart = load_all_results()
+    metrics, charts = load_all_results()
 
     company_cards = build_company_cards()
     feature_cards = build_feature_cards()
@@ -490,7 +461,6 @@ def build_dashboard():
         "endpoints": endpoint_cards,
         "metrics": metrics,
         "charts": charts,
-        "period_chart": period_chart,
         "default_ticker": TICKERS[0],
         "tickers": TICKERS
     }
@@ -509,7 +479,6 @@ def serialize_dashboard(dashboard):
         "default_ticker": dashboard["default_ticker"],
         "metrics": dashboard["metrics"],
         "charts": dashboard["charts"],
-        "period_chart": dashboard["period_chart"],
         "metrics_json": json.dumps(dashboard["metrics"]),
         "charts_json": json.dumps(dashboard["charts"]),
         "features_json": json.dumps(dashboard["features"])
@@ -532,7 +501,6 @@ def home():
         default_ticker=context["default_ticker"],
         metrics=context["metrics"],
         charts=context["charts"],
-        period_chart=context["period_chart"],
         metrics_json=context["metrics_json"],
         charts_json=context["charts_json"],
         features_json=context["features_json"],

@@ -1,1134 +1,753 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Modelo LSTM para Previsão de Ações</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static',filename='favicon.svg') }}">
+<title>{{ project_title }}</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400&family=Roboto+Mono:wght@400;500;700&family=Roboto+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
 
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 
 <style>
-
 :root{
---c1:#6f1d1b;
---c2:#bb9457;
---c3:#432818;
---c4:#99582a;
---c5:#ffe6a7;
---bg:#f7f5f2;
+  --maroon:#6f1d1b;
+  --maroon-dark:#54130f;
+  --tan:#bb9457;
+  --tan-light:#d3b689;
+  --espresso:#432818;
+  --espresso-light:#5c3a24;
+  --rust:#99582a;
+  --rust-light:#b46f3c;
+  --cream:#ffe6a7;
+  --cream-soft:#fbf1de;
+  --paper:#fffbf3;
+  --ink:#2a1b14;
+  --ink-soft:#6b5240;
+  --line:rgba(67,40,24,0.14);
+  --radius:14px;
+  --shadow:0 12px 30px -14px rgba(42,27,20,0.35);
+  --sidebar-w:250px;
 }
 
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:'Roboto',sans-serif;
-scroll-behavior:smooth;
-}
-
+*{ box-sizing:border-box; }
+html{ scroll-behavior:smooth; }
 body{
-background:var(--bg);
-display:flex;
-color:var(--c3);
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Roboto',sans-serif;
+  font-weight:400;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{
+  font-family:'Roboto',sans-serif;
+  font-weight:900;
+  margin:0;
+  color:var(--espresso);
+  letter-spacing:-0.01em;
+}
+p{ margin:0 0 1em 0; }
+a{ color:inherit; }
+code,.mono{ font-family:'Roboto Mono',monospace; }
+.eyebrow{
+  font-family:'Roboto Condensed',sans-serif;
+  font-weight:700;
+  letter-spacing:0.16em;
+  text-transform:uppercase;
+  font-size:0.72rem;
+  color:var(--rust);
 }
 
-aside{
-position:fixed;
-left:0;
-top:0;
-width:250px;
-height:100vh;
-background:var(--c1);
-padding:40px 25px;
-display:flex;
-flex-direction:column;
-justify-content:space-between;
-z-index:999;
-}
+/* ---------- shell ---------- */
+.shell{ display:flex; min-height:100vh; }
 
-.logo{
-color:white;
-font-size:26px;
-font-weight:700;
-line-height:1.3;
-margin-bottom:45px;
+aside.sidebar{
+  position:fixed;
+  top:0; left:0; bottom:0;
+  width:var(--sidebar-w);
+  background:var(--espresso);
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(196,154,100,0.14), transparent 55%),
+    radial-gradient(circle at 90% 90%, rgba(111,29,27,0.35), transparent 55%);
+  color:var(--cream-soft);
+  padding:28px 22px;
+  display:flex;
+  flex-direction:column;
+  gap:26px;
+  z-index:999;
+  overflow-y:auto;
 }
-
-.menu{
-display:flex;
-flex-direction:column;
-gap:8px;
+.brand{ display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+.brand-mark{
+  width:42px; height:42px; border-radius:11px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.12);
+  display:flex; align-items:center; justify-content:center;
+  padding:7px;
+  flex-shrink:0;
 }
+.brand-mark img{ width:100%; height:100%; object-fit:contain; }
+.brand-text{ font-size:0.82rem; line-height:1.25; }
+.brand-text b{ display:block; color:#fff; font-weight:700; font-size:0.95rem; }
+.brand-text span{ color:var(--tan-light); font-family:'Roboto Mono',monospace; font-size:0.7rem; }
 
+.menu{ display:flex; flex-direction:column; gap:2px; margin-top:38px; }
 .menu a{
-text-decoration:none;
-padding:14px 18px;
-border-radius:12px;
-color:white;
-font-weight:500;
-transition:.25s;
+  display:flex; align-items:baseline; gap:10px;
+  padding:11px 12px;
+  border-radius:10px;
+  text-decoration:none;
+  font-size:0.88rem;
+  font-weight:500;
+  color:rgba(251,243,226,0.62);
+  transition:background .2s ease,color .2s ease;
+}
+.menu a:hover{ background:rgba(255,255,255,0.07); color:#fff; }
+.menu a.active{ background:var(--tan); color:var(--espresso); }
+.menu a.active .num{ color:var(--espresso); }
+.menu a .num{
+  font-family:'Roboto Mono',monospace;
+  font-size:0.68rem;
+  color:var(--tan-light);
+  width:18px;
+  flex-shrink:0;
 }
 
-.menu a:hover,
-.menu a.active{
-background:var(--c2);
-color:var(--c3);
+.sidebar-tickers{ display:flex; flex-wrap:wrap; gap:6px; }
+.chip-ticker{
+  font-family:'Roboto Mono',monospace;
+  font-size:0.66rem;
+  padding:4px 8px;
+  border-radius:6px;
+  background:rgba(255,255,255,0.07);
+  color:var(--tan-light);
+  border:1px solid rgba(255,255,255,0.08);
 }
 
-.social{
-display:flex;
-justify-content:center;
-gap:18px;
-margin-top:40px;
+.sidebar-icons{
+  margin-top:auto;
+  padding-top:18px;
+  border-top:1px solid rgba(255,255,255,0.1);
+  display:flex;
+  justify-content:center;
+  gap:14px;
 }
-
-.social a{
-width:54px;
-height:54px;
-background:white;
-border-radius:16px;
-display:flex;
-align-items:center;
-justify-content:center;
-transition:.25s;
+.sidebar-icons a{
+  width:46px; height:46px;
+  background:rgba(255,255,255,0.9);
+  border-radius:13px;
+  display:flex; align-items:center; justify-content:center;
+  transition:.25s;
 }
-
-.social a:hover{
-transform:translateY(-4px);
-box-shadow:0 8px 25px rgba(0,0,0,.18);
-}
-
-.social img{
-width:28px;
-height:28px;
-}
+.sidebar-icons a:hover{ transform:translateY(-4px); background:var(--tan-light); }
+.sidebar-icons img{ width:22px; height:22px; }
 
 main{
-margin-left:250px;
-width:calc(100% - 250px);
+  margin-left:var(--sidebar-w);
+  width:calc(100% - var(--sidebar-w));
 }
 
 section{
-min-height:100vh;
-padding:70px;
-display:flex;
-flex-direction:column;
-justify-content:center;
+  padding:88px 64px;
+  max-width:1180px;
+  margin:0 auto;
 }
+section + section{ border-top:1px solid var(--line); }
 
-.section-title{
-font-size:38px;
-font-weight:700;
-color:var(--c1);
-margin-bottom:15px;
+.section-head{ display:flex; gap:18px; align-items:flex-start; margin-bottom:42px; }
+.section-num{
+  font-family:'Roboto Mono',monospace;
+  font-size:0.95rem;
+  font-weight:700;
+  color:var(--tan);
+  background:var(--cream-soft);
+  border:1px solid var(--line);
+  width:46px; height:46px;
+  border-radius:11px;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
 }
+.section-head h2{ font-size:1.9rem; }
+.section-head .eyebrow{ display:block; margin-bottom:6px; }
+.section-sub{ color:var(--ink-soft); max-width:660px; margin-top:8px; font-size:0.98rem; }
 
-.section-subtitle{
-font-size:18px;
-color:#666;
-margin-bottom:45px;
-max-width:850px;
-line-height:1.7;
-}
-
+/* ---------- hero ---------- */
 .hero{
-display:flex;
-flex-direction:column;
-justify-content:center;
+  position:relative;
+  padding:110px 64px 90px 64px;
+  max-width:none;
+  margin:0;
+  background:linear-gradient(160deg, var(--espresso) 0%, var(--maroon-dark) 70%, var(--maroon) 100%);
+  color:var(--cream-soft);
+  overflow:hidden;
+  border-top:none;
 }
-
-.hero h1{
-font-size:56px;
-font-weight:700;
-color:var(--c1);
-max-width:900px;
-line-height:1.15;
-margin-bottom:25px;
+.hero-candles{
+  position:absolute; inset:0;
+  display:flex; align-items:flex-end; gap:6px;
+  padding:0 40px;
+  opacity:.5;
+  z-index:0;
 }
-
-.hero p{
-font-size:22px;
-color:#666;
-max-width:900px;
-line-height:1.8;
+.candle{ width:10px; border-radius:2px 2px 0 0; animation:candleGrow 5.5s ease-in-out infinite; transform-origin:bottom; }
+@keyframes candleGrow{ 0%,100%{ transform:scaleY(.72); } 50%{ transform:scaleY(1); } }
+.hero-inner{ position:relative; z-index:2; max-width:760px; }
+.hero .eyebrow{ color:var(--tan-light); }
+.hero h1{ font-size:2.85rem; color:#fff; line-height:1.12; margin:14px 0 22px 0; }
+.hero p.lead{ color:rgba(251,243,226,.85); font-size:1.08rem; max-width:620px; }
+.hero-badges{ display:flex; flex-wrap:wrap; gap:10px; margin-top:32px; }
+.badge{
+  font-family:'Roboto Mono',monospace;
+  font-size:0.78rem;
+  padding:9px 15px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.14);
+  color:var(--cream-soft);
 }
+.badge b{ color:var(--tan-light); }
 
-.hero-cards{
-display:flex;
-gap:25px;
-margin-top:55px;
-flex-wrap:wrap;
-}
-
-.hero-card{
-background:white;
-padding:30px;
-border-radius:24px;
-box-shadow:0 12px 35px rgba(0,0,0,.08);
-min-width:230px;
-flex:1;
-}
-
-.hero-card h2{
-font-size:42px;
-color:var(--c1);
-margin-bottom:8px;
-}
-
-.hero-card span{
-font-size:16px;
-color:#777;
-}
-
+/* ---------- cards genericos ---------- */
 .card{
-background:white;
-border-radius:24px;
-box-shadow:0 10px 30px rgba(0,0,0,.08);
-padding:30px;
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:28px;
+}
+.grid{ display:grid; gap:18px; }
+.grid-4{ grid-template-columns:repeat(4,1fr); }
+
+/* ---------- empresas ---------- */
+.stock-card{
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:24px 24px 22px 24px;
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+  cursor:default;
+}
+.stock-card::before{
+  content:"";
+  position:absolute; top:0; left:0; right:0; height:5px;
+  background:var(--accent, var(--rust));
+}
+.stock-card .ticker-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.stock-card .ticker{ font-family:'Roboto Mono',monospace; font-weight:700; font-size:1.05rem; color:var(--espresso); }
+.stock-card .sector-tag{
+  font-size:0.64rem;
+  font-family:'Roboto Condensed',sans-serif;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  color:#fff;
+  padding:4px 8px;
+  border-radius:6px;
+}
+.sector-tag.ciclico{ background:var(--rust); }
+.sector-tag.nao-ciclico{ background:var(--maroon); }
+.stock-card h3{ font-size:1.2rem; margin-bottom:14px; }
+.stock-meta{ display:grid; grid-template-columns:auto 1fr; gap:5px 10px; font-size:0.85rem; }
+.stock-meta dt{ color:var(--ink-soft); font-family:'Roboto Condensed',sans-serif; font-weight:600; }
+.stock-meta dd{ margin:0 0 8px 0; color:var(--ink); }
+
+.period-card h3{ font-size:1.15rem; color:var(--espresso); margin-bottom:14px; }
+.period-warning{
+  display:inline-block;
+  font-family:'Roboto Mono',monospace;
+  font-size:0.72rem;
+  color:var(--ink-soft);
+  background:var(--cream-soft);
+  padding:9px 13px;
+  border-radius:8px;
+  border:1px dashed var(--tan);
+  margin-bottom:22px;
+}
+.period-list{ display:flex; flex-direction:column; gap:18px; }
+.period-row{ display:grid; grid-template-columns:120px 1fr 190px; align-items:center; gap:16px; }
+.period-ticker{ font-family:'Roboto Mono',monospace; font-weight:700; color:var(--espresso); font-size:0.9rem; }
+.period-ticker .company{ display:block; font-family:'Roboto',sans-serif; font-weight:400; font-size:0.7rem; color:var(--ink-soft); margin-top:2px; }
+.period-track{ position:relative; height:14px; background:var(--cream-soft); border-radius:999px; border:1px solid var(--line); overflow:hidden; }
+.period-fill{ position:absolute; top:0; bottom:0; border-radius:999px; }
+.period-dates{ font-family:'Roboto Mono',monospace; font-size:0.76rem; color:var(--ink-soft); text-align:right; }
+.period-axis{ display:grid; grid-template-columns:120px 1fr 190px; gap:16px; margin-top:8px; padding-top:10px; border-top:1px dashed var(--line); }
+.period-axis span{ font-family:'Roboto Mono',monospace; font-size:0.7rem; color:var(--ink-soft); }
+
+/* ---------- features ---------- */
+.feature-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:10px;
+}
+.feature-box{
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px 8px;
+  text-align:center;
+  font-weight:600;
+  font-family:'Roboto Mono',monospace;
+  font-size:0.66rem;
+  cursor:pointer;
+  transition:.2s;
+  box-shadow:var(--shadow);
+}
+.feature-box:hover{ border-color:var(--rust); color:var(--rust); transform:translateY(-3px); }
+.feature-box.active{ background:var(--espresso); border-color:var(--espresso); color:#fff; }
+.feature-description{
+  background:var(--cream-soft);
+  border:1px dashed var(--tan);
+  padding:20px 22px;
+  border-radius:var(--radius);
+  min-height:90px;
+  font-size:0.85rem;
+  line-height:1.7;
+  color:var(--espresso);
+  margin-top:22px;
 }
 
-.grid{
-display:grid;
-gap:25px;
+/* ---------- modelos / performance ---------- */
+.perf-layout{ display:grid; grid-template-columns:210px 1fr; gap:24px; }
+.perf-menu{ display:flex; flex-direction:column; gap:8px; }
+.ticker-btn{
+  text-align:left;
+  font-family:'Roboto Mono',monospace;
+  font-size:0.85rem;
+  font-weight:700;
+  padding:14px 16px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:var(--paper);
+  color:var(--ink-soft);
+  cursor:pointer;
+  transition:all .15s ease;
+  box-shadow:var(--shadow);
 }
+.ticker-btn .company{
+  display:block; font-family:'Roboto',sans-serif; font-weight:400; font-size:0.72rem; color:var(--ink-soft); margin-top:3px;
+}
+.ticker-btn.selected{ background:var(--espresso); border-color:var(--espresso); color:#fff; }
+.ticker-btn.selected .company{ color:var(--tan-light); }
+.ticker-btn:hover:not(.selected){ border-color:var(--rust); color:var(--espresso); }
 
-.grid-2{
-grid-template-columns:repeat(2,1fr);
+.perf-panel{ display:flex; flex-direction:column; gap:18px; }
+.chart-card{ padding:24px; }
+.chart-card-head{
+  display:flex; justify-content:space-between; align-items:flex-start;
+  flex-wrap:wrap; gap:12px; margin-bottom:10px;
 }
+.chart-card-head h4{ font-size:1.08rem; color:var(--espresso); }
+.metric-row{ display:flex; gap:10px; flex-wrap:wrap; }
+.metric-chip{
+  background:var(--cream-soft);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:8px 12px;
+  font-family:'Roboto Mono',monospace;
+  min-width:74px;
+  text-align:center;
+}
+.metric-chip b{
+  display:block; font-size:0.56rem; font-family:'Roboto Condensed',sans-serif;
+  text-transform:uppercase; letter-spacing:0.06em; color:var(--rust); font-weight:700; margin-bottom:4px;
+}
+.metric-chip span{ font-size:1.02rem; font-weight:700; color:var(--espresso); }
 
-.grid-3{
-grid-template-columns:repeat(3,1fr);
+/* ---------- API ---------- */
+table.spec{ width:100%; border-collapse:collapse; margin-top:8px; font-size:0.86rem; }
+table.spec th{
+  text-align:left;
+  font-family:'Roboto Condensed',sans-serif;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  font-size:0.7rem;
+  color:var(--rust);
+  padding:10px;
+  border-bottom:2px solid var(--espresso);
 }
+table.spec td{ padding:14px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+table.spec td.method{ font-family:'Roboto Mono',monospace; font-weight:700; text-transform:uppercase; }
+.m-get{ color:#1565C0; }
+.m-post{ color:var(--rust); }
+table.spec code{ background:var(--cream-soft); padding:2px 7px; border-radius:5px; font-size:0.82rem; }
 
-.grid-4{
-grid-template-columns:repeat(4,1fr);
+.steps{ display:flex; flex-direction:column; gap:12px; margin-top:22px; }
+.step{ display:grid; grid-template-columns:38px 1fr; gap:14px; align-items:center; }
+.step-num{
+  font-family:'Roboto Mono',monospace; font-weight:700; color:var(--rust);
+  background:var(--paper); border:1px solid var(--line);
+  width:32px; height:32px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center; font-size:0.8rem;
 }
+.step p{ margin:0; color:var(--ink-soft); font-size:0.85rem; }
+
+.callout{
+  background:var(--cream-soft);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:20px 24px;
+  font-size:0.86rem;
+  color:var(--espresso);
+  margin-top:26px;
+}
+.callout h3{ font-size:1rem; margin-bottom:8px; color:var(--maroon-dark); }
+.callout p{ font-size:0.86rem; color:var(--ink-soft); }
+
+footer{
+  background:var(--espresso);
+  color:rgba(251,243,226,.75);
+  padding:48px 64px;
+  text-align:center;
+}
+footer strong{ display:block; font-size:1.15rem; color:var(--cream-soft); margin-bottom:10px; }
+footer p{ margin-top:6px; opacity:.85; font-size:0.82rem; }
+
+.reveal{ opacity:0; transform:translateY(32px); transition:all .7s ease; }
 
 @media(max-width:1200px){
-
-aside{
-display:none;
+  :root{ --sidebar-w:0px; }
+  aside.sidebar{ display:none; }
+  main{ margin-left:0; width:100%; }
+  section{ padding:56px 24px; }
+  .hero{ padding:70px 24px 56px 24px; }
+  .grid-4{ grid-template-columns:1fr 1fr; }
+  .perf-layout{ grid-template-columns:1fr; }
+  .perf-menu{ flex-direction:row; overflow-x:auto; }
+  .feature-grid{ grid-template-columns:repeat(4,1fr); }
+  .period-row,.period-axis{ grid-template-columns:90px 1fr; }
+  .period-dates{ display:none; }
 }
-
-main{
-margin:0;
-width:100%;
+@media(max-width:640px){
+  .grid-4{ grid-template-columns:1fr; }
+  .feature-grid{ grid-template-columns:repeat(2,1fr); }
 }
-
-.grid-2,
-.grid-3,
-.grid-4{
-grid-template-columns:1fr;
-}
-
-section{
-padding:45px;
-}
-
-.hero h1{
-font-size:42px;
-}
-
-}
-
 </style>
-
 </head>
 
 <body>
+<div class="shell">
 
-<aside>
+<aside class="sidebar">
+  <div>
+    <div class="brand">
+      <div class="brand-mark">
+        <img src="{{ url_for('static',filename='favicon.svg') }}" alt="Logo">
+      </div>
+      <div class="brand-text"><b>Modelo LSTM</b><span>ações B3 · ml-pipeline</span></div>
+    </div>
+    <nav class="menu">
+      {% for item in sidebar %}
+      <a href="#{{ item.id }}"{% if loop.first %} class="active"{% endif %}>
+        <span class="num">{{ '%02d'|format(loop.index) }}</span>{{ item.title }}
+      </a>
+      {% endfor %}
+    </nav>
+  </div>
 
-<div>
+  <div class="sidebar-tickers">
+    {% for ticker in tickers %}
+    <span class="chip-ticker">{{ ticker }}</span>
+    {% endfor %}
+  </div>
 
-<div class="logo">
-Modelo LSTM<br>
-Ações B3
-</div>
-
-<nav class="menu">
-
-<a href="#inicio" class="active">Início</a>
-
-<a href="#acoes">Ações</a>
-
-<a href="#features">Features</a>
-
-<a href="#metricas">Modelos</a>
-
-<a href="#api">API</a>
-
-</nav>
-
-</div>
-
-<div class="social">
-
-<a href="/swagger" target="_blank">
-<img src="{{ url_for('static',filename='swagger.svg') }}">
-</a>
-
-<a href="https://github.com/leticiafaria7" target="_blank">
-<img src="{{ url_for('static',filename='github.svg') }}">
-</a>
-
-</div>
-
+  <div class="sidebar-icons">
+    <a href="{{ swagger_url }}" target="_blank" title="Documentação Swagger">
+      <img src="{{ url_for('static',filename='swagger.svg') }}" alt="Swagger">
+    </a>
+    <a href="{{ github_url }}" target="_blank" title="Repositório no GitHub">
+      <img src="{{ url_for('static',filename='github.svg') }}" alt="GitHub">
+    </a>
+  </div>
 </aside>
 
 <main>
 
-<section id="inicio" class="hero">
-
-<h1>Modelo LSTM para previsão do preço de fechamento de ações da B3</h1>
-
-<p>
-Esta aplicação disponibiliza uma API em Flask para consulta das previsões de fechamento para D+1 utilizando modelos LSTM treinados individualmente para cada ativo, com atualização automática das bases históricas armazenadas no Supabase.
-</p>
-
-<div class="hero-cards">
-
-<div class="hero-card">
-<h2>{{ total_tickers }}</h2>
-<span>Tickers suportados</span>
-</div>
-
-<div class="hero-card">
-<h2>{{ total_rows }}</h2>
-<span>Registros históricos</span>
-</div>
-
-<div class="hero-card">
-<h2>{{ last_update }}</h2>
-<span>Última atualização</span>
-</div>
-
-<div class="hero-card">
-<h2>{{ next_day }}</h2>
-<span>Previsão disponível</span>
-</div>
-
-</div>
-
-</section>
-
-<section id="acoes">
-
-<h2 class="section-title">Ações utilizadas</h2>
-
-<p class="section-subtitle">
-Os modelos foram treinados individualmente para cada ativo utilizando dados históricos de mercado,
-indicadores macroeconômicos e indicadores técnicos calculados diariamente.
-</p>
-
-<div class="grid grid-4">
-
-{% for empresa in empresas %}
-
-<div class="card empresa-card">
-
-<h2>{{ empresa.ticker }}</h2>
-
-<h3>{{ empresa.empresa }}</h3>
-
-<p><strong>Setor</strong></p>
-<span>{{ empresa.setor }}</span>
-
-<p style="margin-top:18px;"><strong>Subsetor</strong></p>
-<span>{{ empresa.subsetor }}</span>
-
-<p style="margin-top:18px;"><strong>Segmento</strong></p>
-<span>{{ empresa.segmento }}</span>
-
-</div>
-
-{% endfor %}
-
-</div>
-
-<div style="height:35px"></div>
-
-<div class="card">
-
-<h3 style="margin-bottom:20px;color:var(--c1);font-size:24px;">
-Período histórico disponível
-</h3>
-
-<div id="historyChart" style="height:520px;"></div>
-
-</div>
-
-</section>
-
-<style>
-
-.empresa-card{
-transition:.25s;
-cursor:pointer;
-}
-
-.empresa-card:hover{
-transform:translateY(-8px);
-box-shadow:0 15px 35px rgba(0,0,0,.12);
-}
-
-.empresa-card h2{
-font-size:34px;
-color:var(--c1);
-margin-bottom:6px;
-}
-
-.empresa-card h3{
-font-size:18px;
-margin-bottom:22px;
-color:var(--c4);
-}
-
-.empresa-card p{
-font-size:13px;
-font-weight:700;
-color:var(--c1);
-margin-bottom:4px;
-}
-
-.empresa-card span{
-font-size:15px;
-color:#666;
-line-height:1.5;
-display:block;
-}
-
-</style>
-
-<script>
-
-
-const periodos={{ history_chart|safe }};
-
-Plotly.newPlot(
-"historyChart",
-periodos.data,
-periodos.layout,
-{
-responsive:true,
-displayModeBar:false
-}
-);
-
-</script>
-
-<section id="features">
-
-<h2 class="section-title">Features utilizadas pelo modelo</h2>
-
-<p class="section-subtitle">
-Cada previsão utiliza variáveis de preço, indicadores macroeconômicos,
-estatísticas de tendência, volatilidade, momentum e codificações temporais.
-Clique em uma feature para visualizar sua descrição.
-</p>
-
-<div id="featureGrid" class="feature-grid">
-
-{% for feature in features %}
-
-<div class="feature-box"
-data-description="{{ feature.description }}"
-onclick="showFeature(this)">
-
-{{ feature.name }}
-
-</div>
-
-{% endfor %}
-
-</div>
-
-<div style="height:30px"></div>
-
-<div id="featureDescription" class="feature-description">
-
-Selecione uma feature acima para visualizar sua descrição.
-
-</div>
-
-</section>
-
-<style>
-
-.feature-grid{
-
-display:grid;
-grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
-gap:16px;
-
-}
-
-.feature-box{
-
-background:white;
-border-radius:18px;
-padding:18px;
-text-align:center;
-font-weight:600;
-cursor:pointer;
-transition:.25s;
-box-shadow:0 8px 22px rgba(0,0,0,.08);
-
-}
-
-.feature-box:hover{
-
-background:var(--c2);
-color:white;
-transform:translateY(-4px);
-
-}
-
-.feature-box.active{
-
-background:var(--c1);
-color:white;
-
-}
-
-.feature-description{
-
-background:white;
-padding:30px;
-border-radius:22px;
-min-height:140px;
-font-size:18px;
-line-height:1.8;
-box-shadow:0 12px 30px rgba(0,0,0,.08);
-
-}
-
-</style>
-
-<script>
-
-function showFeature(element){
-
-document.querySelectorAll(".feature-box")
-.forEach(e=>e.classList.remove("active"));
-
-element.classList.add("active");
-
-document.getElementById("featureDescription").innerHTML=
-element.dataset.description;
-
-}
-
-</script>
-
-<section id="metricas">
-
-<h2 class="section-title">Avaliação dos modelos</h2>
-
-<p class="section-subtitle">
-Cada ativo possui um modelo LSTM treinado independentemente. Ao selecionar um ticker,
-as métricas e o gráfico de desempenho são atualizados dinamicamente.
-</p>
-
-<div class="metrics-layout">
-
-<div class="ticker-selector">
-
-{% for ticker in tickers %}
-
-<div class="ticker-card {% if loop.first %}selected{% endif %}"
-onclick="changeTicker('{{ ticker }}',this)">
-
-<div class="ticker-symbol">
-
-{{ ticker }}
-
-</div>
-
-<div class="ticker-company">
-
-{{ empresas_dict[ticker] }}
-
-</div>
-
-</div>
-
-{% endfor %}
-
-</div>
-
-<div class="metrics-panel">
-
-<div class="metrics-header">
-
-<div class="metric-card">
-
-<div class="metric-title">
-
-MAE
-
-</div>
-
-<div id="maeValue" class="metric-value"></div>
-
-</div>
-
-<div class="metric-card">
-
-<div class="metric-title">
-
-RMSE
-
-</div>
-
-<div id="rmseValue" class="metric-value"></div>
-
-</div>
-
-<div class="metric-card">
-
-<div class="metric-title">
-
-MAPE
-
-</div>
-
-<div id="mapeValue" class="metric-value"></div>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<div id="predictionChart"
-style="height:520px;">
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-</section>
-
-<style>
-
-.metrics-layout{
-
-display:grid;
-grid-template-columns:280px 1fr;
-gap:35px;
-
-}
-
-.ticker-selector{
-
-display:flex;
-flex-direction:column;
-gap:18px;
-
-}
-
-.ticker-card{
-
-background:white;
-padding:22px;
-border-radius:22px;
-cursor:pointer;
-transition:.25s;
-box-shadow:0 8px 25px rgba(0,0,0,.08);
-
-}
-
-.ticker-card:hover{
-
-transform:translateY(-5px);
-
-}
-
-.ticker-card.selected{
-
-background:var(--c1);
-color:white;
-
-}
-
-.ticker-symbol{
-
-font-size:34px;
-font-weight:700;
-
-}
-
-.ticker-company{
-
-font-size:15px;
-margin-top:8px;
-opacity:.9;
-
-}
-
-.metrics-panel{
-
-display:flex;
-flex-direction:column;
-gap:28px;
-
-}
-
-.metrics-header{
-
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:20px;
-
-}
-
-.metric-card{
-
-background:white;
-padding:24px;
-border-radius:22px;
-text-align:center;
-box-shadow:0 8px 25px rgba(0,0,0,.08);
-
-}
-
-.metric-title{
-
-font-size:16px;
-color:#777;
-
-}
-
-.metric-value{
-
-font-size:38px;
-font-weight:700;
-color:var(--c1);
-margin-top:12px;
-
-}
-
-@media(max-width:1200px){
-
-.metrics-layout{
-
-grid-template-columns:1fr;
-
-}
-
-.metrics-header{
-
-grid-template-columns:1fr;
-
-}
-
-}
-
-</style>
-
-<script>
-
-const metricas={{ metrics|safe }};
-const graficos={{ prediction_charts|safe }};
-
-function animateChart(data){
-
-Plotly.newPlot(
-"predictionChart",
-[],
-data.layout,
-{
-responsive:true,
-displayModeBar:false
-}
-);
-
-let traces=[];
-
-data.data.forEach((trace,index)=>{
-
-setTimeout(()=>{
-
-traces.push(trace);
-
-Plotly.react(
-"predictionChart",
-traces,
-data.layout,
-{
-responsive:true,
-displayModeBar:false
-}
-);
-
-},index*450);
-
-});
-
-}
-
-function changeTicker(ticker,element){
-
-document.querySelectorAll(".ticker-card")
-.forEach(card=>card.classList.remove("selected"));
-
-element.classList.add("selected");
-
-document.getElementById("maeValue").innerHTML=
-metricas[ticker].MAE.toFixed(3);
-
-document.getElementById("rmseValue").innerHTML=
-metricas[ticker].RMSE.toFixed(3);
-
-document.getElementById("mapeValue").innerHTML=
-metricas[ticker]["MAPE (%)"].toFixed(2)+"%";
-
-animateChart(graficos[ticker]);
-
-}
-
-window.addEventListener("load",()=>{
-
-changeTicker(
-"{{ tickers[0] }}",
-document.querySelector(".ticker-card")
-);
-
-});
-
-</script>
-
-<section id="api">
-
-<h2 class="section-title">Endpoints da API</h2>
-
-<p class="section-subtitle">
-Os dados históricos são sincronizados diariamente com o Supabase. Após a atualização,
-as previsões são recalculadas utilizando os modelos LSTM treinados para cada ativo e
-ficam imediatamente disponíveis pelos endpoints abaixo.
-</p>
-
-<div class="api-table">
-
-<div class="api-header method">Método</div>
-<div class="api-header route">Endpoint</div>
-<div class="api-header desc">Descrição</div>
-
-<div class="api-method post">POST</div>
-<div class="api-route">/api/v1/predict/&lt;ticker&gt;</div>
-<div class="api-desc">
-Retorna o preço previsto para o próximo pregão juntamente com o último fechamento disponível.
-</div>
-
-<div class="api-method get">GET</div>
-<div class="api-route">/api/v1/models</div>
-<div class="api-desc">
-Lista todos os tickers disponíveis e informações do modelo armazenado.
-</div>
-
-<div class="api-method get">GET</div>
-<div class="api-route">/api/v1/models/&lt;ticker&gt;/metrics</div>
-<div class="api-desc">
-Retorna as métricas de avaliação (MAE, RMSE, MAPE, R² e demais indicadores).
-</div>
-
-<div class="api-method get">GET</div>
-<div class="api-route">/health</div>
-<div class="api-desc">
-Health Check utilizado por Load Balancer e Kubernetes.
-</div>
-
-<div class="api-method get">GET</div>
-<div class="api-route">/metrics</div>
-<div class="api-desc">
-Métricas Prometheus da aplicação (latência, erros e quantidade de requisições).
-</div>
-
-</div>
-
-<div style="height:35px"></div>
-
-<div class="card">
-
-<h3 style="color:var(--c1);margin-bottom:15px;">
-Atualização diária
-</h3>
-
-<p style="font-size:18px;line-height:1.8;color:#555;">
-
-Sempre que o processo de sincronização é executado são realizadas as etapas:
-
-</p>
-
-<ul class="pipeline-list">
-
-<li>Atualização das séries históricas de ações.</li>
-
-<li>Atualização dos índices econômicos.</li>
-
-<li>Atualização dos ativos internacionais.</li>
-
-<li>Construção da tabela analítica.</li>
-
-<li>Geração das previsões para D+1.</li>
-
-<li>Persistência das previsões no Supabase.</li>
-
-</ul>
-
-</div>
-
-</section>
-
-<style>
-
-.api-table{
-
-display:grid;
-grid-template-columns:150px 360px 1fr;
-border-radius:24px;
-overflow:hidden;
-box-shadow:0 10px 30px rgba(0,0,0,.08);
-
-}
-
-.api-header{
-
-background:var(--c1);
-color:white;
-padding:22px;
-font-weight:700;
-
-}
-
-.api-method,
-.api-route,
-.api-desc{
-
-padding:22px;
-background:white;
-border-bottom:1px solid #eee;
-display:flex;
-align-items:center;
-
-}
-
-.api-method{
-
-font-weight:700;
-justify-content:center;
-
-}
-
-.api-method.get{
-
-color:#1565C0;
-
-}
-
-.api-method.post{
-
-color:#C62828;
-
-}
-
-.api-route{
-
-font-family:monospace;
-font-size:15px;
-
-}
-
-.pipeline-list{
-
-margin-top:18px;
-margin-left:25px;
-line-height:2;
-
-}
-
-@media(max-width:1200px){
-
-.api-table{
-
-grid-template-columns:1fr;
-
-}
-
-.api-header{
-
-display:none;
-
-}
-
-.api-method{
-
-justify-content:flex-start;
-font-size:18px;
-
-}
-
-}
-
-</style>
-
-<footer>
-
-<div>
-
-<strong>Modelo LSTM para previsão de ações</strong>
-
-<p>
-Projeto desenvolvido utilizando Flask, TensorFlow, Supabase, Plotly e Docker.
-</p>
-
-</div>
-
-<div>
-
-<p>
-
-Dados financeiros:
-Yahoo Finance
-
-</p>
-
-<p>
-
-Indicadores econômicos:
-Banco Central do Brasil
-
-</p>
-
-</div>
-
-</footer>
-
-<style>
-
-footer{
-
-margin-top:80px;
-padding:50px 70px;
-background:var(--c3);
-color:white;
-
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:50px;
-
-}
-
-footer strong{
-
-font-size:22px;
-
-}
-
-footer p{
-
-margin-top:8px;
-opacity:.85;
-line-height:1.7;
-
-}
-
-@media(max-width:900px){
-
-footer{
-
-flex-direction:column;
-align-items:flex-start;
-
-}
-
-}
-
-</style>
-
-<script>
-
-const observer=new IntersectionObserver(entries=>{
-
-entries.forEach(entry=>{
-
-if(entry.isIntersecting){
-
-document
-.querySelectorAll(".menu a")
-.forEach(link=>link.classList.remove("active"));
-
-const current=document.querySelector(
-`.menu a[href="#${entry.target.id}"]`
-);
-
-if(current)
-current.classList.add("active");
-
-}
-
-});
-
-},{
-threshold:.45
-});
-
-document
-.querySelectorAll("section")
-.forEach(section=>observer.observe(section));
-
-</script>
-
-<script>
-
-window.addEventListener("scroll",()=>{
-
-const cards=document.querySelectorAll(".card,.hero-card,.empresa-card,.ticker-card");
-
-cards.forEach(card=>{
-
-const rect=card.getBoundingClientRect();
-
-if(rect.top<window.innerHeight-80){
-
-card.style.opacity="1";
-card.style.transform="translateY(0px)";
-
-}
-
-});
-
-});
-
-document.querySelectorAll(
-".card,.hero-card,.empresa-card,.ticker-card"
-).forEach(card=>{
-
-card.style.opacity="0";
-card.style.transform="translateY(40px)";
-card.style.transition="all .7s ease";
-
-});
-
-window.dispatchEvent(new Event("scroll"));
-
-</script>
+  <!-- HERO / SOBRE -->
+  <section id="sobre" class="hero">
+    <div class="hero-candles" id="heroCandles"></div>
+    <div class="hero-inner">
+      <span class="eyebrow">Projeto de Machine Learning · Previsão de Séries Temporais</span>
+      <h1>{{ project_title }}</h1>
+      <p class="lead">{{ project_description }}</p>
+      <div class="hero-badges">
+        <span class="badge"><b>{{ tickers|length }}</b> ativos monitorados</span>
+        <span class="badge"><b>{{ features|length }}</b> features</span>
+        <span class="badge"><b>{{ endpoints|length }}</b> endpoints REST</span>
+        <span class="badge">Atualização dos dados: <b>diário via CI/CD e armazenamento no Supabase</b></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACOES -->
+  <section id="acoes">
+    <div class="section-head">
+      <div class="section-num">02</div>
+      <div>
+        <span class="eyebrow">Carteira acompanhada</span>
+        <h2>Ações utilizadas</h2>
+        <p class="section-sub">Os modelos foram treinados individualmente para cada ativo, utilizando dados históricos de mercado, indicadores macroeconômicos e indicadores técnicos calculados diariamente.</p>
+      </div>
+    </div>
+
+    <div class="grid grid-4">
+      {% for company in companies %}
+      <div class="stock-card reveal" style="--accent: {{ ['var(--maroon)','var(--rust)','var(--tan)','var(--espresso)'][loop.index0 % 4] }}">
+        <div class="ticker-row">
+          <span class="ticker">{{ company.ticker }}</span>
+          <span class="sector-tag {{ 'ciclico' if company.setor == 'Consumo Cíclico' else 'nao-ciclico' }}">{{ company.setor }}</span>
+        </div>
+        <h3>{{ company.empresa }}</h3>
+        <dl class="stock-meta">
+          <dt>Subsetor</dt><dd>{{ company.subsetor }}</dd>
+          <dt>Segmento</dt><dd>{{ company.segmento }}</dd>
+        </dl>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="height:28px"></div>
+
+    <div class="card period-card reveal">
+      <h3>Período histórico disponível</h3>
+      <span class="period-warning">⚠ o período considera apenas a janela de dados utilizada no treinamento do modelo; dados mais recentes podem já estar disponíveis para inferência.</span>
+      <div class="period-list" id="periodList"></div>
+      <div class="period-axis" id="periodAxis"></div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="section-head">
+      <div class="section-num">03</div>
+      <div>
+        <span class="eyebrow">Engenharia de atributos</span>
+        <h2>Features utilizadas pelo modelo</h2>
+        <p class="section-sub">Cada previsão utiliza variáveis de preço, indicadores macroeconômicos, estatísticas de tendência, volatilidade, momentum e codificações temporais. Clique em uma feature para visualizar a descrição.</p>
+      </div>
+    </div>
+
+    <div id="featureGrid" class="feature-grid">
+      {% for feature in features %}
+      <div class="feature-box" data-description="{{ feature.description }}" onclick="showFeature(this)">
+        {{ feature.name }}
+      </div>
+      {% endfor %}
+    </div>
+
+    <div id="featureDescription" class="feature-description">
+      Selecione uma feature acima para visualizar sua descrição.
+    </div>
+  </section>
+
+  <!-- MODELOS -->
+  <section id="modelos">
+    <div class="section-head">
+      <div class="section-num">04</div>
+      <div>
+        <span class="eyebrow">Modelos já treinados</span>
+        <h2>Avaliação dos modelos</h2>
+        <p class="section-sub">Cada ativo possui um modelo LSTM treinado independentemente. Ao selecionar um ticker, as métricas e o gráfico de desempenho (real vs. previsto vs. naive) são atualizados dinamicamente.</p>
+      </div>
+    </div>
+
+    <div class="perf-layout">
+      <div class="perf-menu" id="tickerMenu">
+        {% for ticker in tickers %}
+        <div class="ticker-btn{% if ticker == default_ticker %} selected{% endif %}" onclick="changeTicker('{{ ticker }}',this)">
+          {{ ticker }}<span class="company">{{ empresas_dict[ticker].empresa }}</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="perf-panel">
+        <div class="card reveal chart-card">
+          <div class="chart-card-head">
+            <h4 id="perfTitle"></h4>
+            <div class="metric-row">
+              <div class="metric-chip"><b>MAE</b><span id="maeValue"></span></div>
+              <div class="metric-chip"><b>RMSE</b><span id="rmseValue"></span></div>
+              <div class="metric-chip"><b>MAPE</b><span id="mapeValue"></span></div>
+              <div class="metric-chip"><b>SMAPE</b><span id="smapeValue"></span></div>
+            </div>
+          </div>
+          <div id="predictionChart" style="height:440px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- API -->
+  <section id="api">
+    <div class="section-head">
+      <div class="section-num">05</div>
+      <div>
+        <span class="eyebrow">Serving do modelo</span>
+        <h2>Endpoints da API</h2>
+        <p class="section-sub">Os dados históricos são sincronizados diariamente com o Supabase. Após a atualização, as previsões são recalculadas utilizando os modelos LSTM treinados para cada ativo e ficam imediatamente disponíveis pelos endpoints abaixo.</p>
+      </div>
+    </div>
+
+    <table class="spec">
+      <thead>
+        <tr><th>Método</th><th>Endpoint</th><th>Descrição</th></tr>
+      </thead>
+      <tbody>
+        {% for endpoint in endpoints %}
+        <tr>
+          <td class="method {% if endpoint.method == 'GET' %}m-get{% else %}m-post{% endif %}">{{ endpoint.method }}</td>
+          <td><code>{{ endpoint.path }}</code></td>
+          <td>{{ endpoint.description }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <h3>Atualização diária</h3>
+      <p>Sempre que o processo de sincronização é executado, são realizadas as seguintes etapas:</p>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><p>Atualização das séries históricas de ações.</p></div>
+        <div class="step"><div class="step-num">2</div><p>Atualização dos índices econômicos (Selic, IPCA).</p></div>
+        <div class="step"><div class="step-num">3</div><p>Atualização dos ativos internacionais (Ibovespa, S&amp;P 500, Dólar).</p></div>
+        <div class="step"><div class="step-num">4</div><p>Construção da tabela analítica.</p></div>
+        <div class="step"><div class="step-num">5</div><p>Geração das previsões para D+1.</p></div>
+        <div class="step"><div class="step-num">6</div><p>Persistência das previsões no Supabase.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <strong>Modelo LSTM para Previsão de Ações — B3</strong>
+    <p>Flask · TensorFlow/Keras · Optuna · yfinance · python-bcb · Supabase · Plotly · Docker · Prometheus · Grafana</p>
+    <p>Dados financeiros: Yahoo Finance · Indicadores econômicos: Banco Central do Brasil</p>
+  </footer>
 
 </main>
+</div>
+
+<script>
+/* ---------- hero candles decoration ---------- */
+(function(){
+  const wrap = document.getElementById('heroCandles');
+  const palette = ['#6f1d1b','#bb9457','#99582a','#ffe6a7'];
+  for(let i=0;i<60;i++){
+    const el = document.createElement('div');
+    el.className='candle';
+    el.style.height = (20 + Math.random()*140)+'px';
+    el.style.background = palette[i % palette.length];
+    el.style.animationDelay = (Math.random()*5)+'s';
+    el.style.animationDuration = (4+Math.random()*3)+'s';
+    wrap.appendChild(el);
+  }
+})();
+
+/* ---------- dados das empresas (usados no timeline e no título do gráfico) ---------- */
+const companiesData = [
+  {% for company in companies %}
+  {ticker:"{{ company.ticker }}", empresa:"{{ company.empresa }}", inicio:"{{ company.inicio }}", fim:"{{ company.fim }}"}{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+/* ---------- período histórico (timeline em degradê, sem Plotly) ---------- */
+(function(){
+  const accentVars = ['var(--maroon)','var(--rust)','var(--tan)','var(--espresso)'];
+  const starts = companiesData.map(c=>new Date(c.inicio).getTime());
+  const ends = companiesData.map(c=>new Date(c.fim).getTime());
+  const rangeStart = Math.min(...starts);
+  const rangeEnd = Math.max(...ends);
+  const total = rangeEnd - rangeStart;
+
+  const list = document.getElementById('periodList');
+  companiesData.forEach((c,i)=>{
+    const start = new Date(c.inicio).getTime();
+    const end = new Date(c.fim).getTime();
+    const left = ((start-rangeStart)/total)*100;
+    const width = ((end-start)/total)*100;
+    const accent = accentVars[i % accentVars.length];
+    const row = document.createElement('div');
+    row.className = 'period-row';
+    row.innerHTML = `
+      <div class="period-ticker">${c.ticker}<span class="company">${c.empresa}</span></div>
+      <div class="period-track"><div class="period-fill" style="left:${left}%;width:${width}%;background:linear-gradient(90deg, ${accent}, var(--tan))"></div></div>
+      <div class="period-dates">${c.inicio} → ${c.fim}</div>
+    `;
+    list.appendChild(row);
+  });
+
+  const axis = document.getElementById('periodAxis');
+  axis.innerHTML = `<span></span><span>${new Date(rangeStart).getUTCFullYear()}</span><span style="text-align:right">${new Date(rangeEnd).getUTCFullYear()}</span>`;
+})();
+
+/* ---------- features clicáveis ---------- */
+function showFeature(element){
+  document.querySelectorAll(".feature-box").forEach(e=>e.classList.remove("active"));
+  element.classList.add("active");
+  document.getElementById("featureDescription").innerHTML = element.dataset.description;
+}
+
+/* ---------- métricas e gráficos por ticker ---------- */
+const metricas = {{ metrics_json|safe }};
+const graficos = {
+  {% for ticker in tickers %}
+  "{{ ticker }}": {{ charts[ticker]|safe }}{% if not loop.last %},{% endif %}
+  {% endfor %}
+};
+
+function changeTicker(ticker, element){
+  document.querySelectorAll(".ticker-btn").forEach(btn=>btn.classList.remove("selected"));
+  element.classList.add("selected");
+
+  const info = companiesData.find(c=>c.ticker===ticker);
+  document.getElementById("perfTitle").textContent = info ? `${info.empresa} · ${ticker}` : ticker;
+
+  document.getElementById("maeValue").innerHTML = metricas[ticker].MAE.toFixed(3);
+  document.getElementById("rmseValue").innerHTML = metricas[ticker].RMSE.toFixed(3);
+  document.getElementById("mapeValue").innerHTML = metricas[ticker].MAPE.toFixed(2)+"%";
+  document.getElementById("smapeValue").innerHTML = metricas[ticker].SMAPE.toFixed(2)+"%";
+
+  const chart = graficos[ticker];
+  Plotly.newPlot("predictionChart", chart.data, chart.layout, { responsive:true, displayModeBar:false });
+}
+
+window.addEventListener("load", ()=>{
+  changeTicker(
+    "{{ default_ticker }}",
+    document.querySelector(".ticker-btn.selected") || document.querySelector(".ticker-btn")
+  );
+});
+
+/* ---------- scroll spy no menu lateral ---------- */
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      document.querySelectorAll(".menu a").forEach(link=>link.classList.remove("active"));
+      const current = document.querySelector(`.menu a[href="#${entry.target.id}"]`);
+      if(current) current.classList.add("active");
+    }
+  });
+}, { threshold:.4 });
+
+document.querySelectorAll("section").forEach(section=>observer.observe(section));
+
+/* ---------- fade-in ao rolar ---------- */
+window.addEventListener("scroll", ()=>{
+  document.querySelectorAll(".reveal").forEach(card=>{
+    const rect = card.getBoundingClientRect();
+    if(rect.top < window.innerHeight - 80){
+      card.style.opacity = "1";
+      card.style.transform = "translateY(0px)";
+    }
+  });
+});
+window.dispatchEvent(new Event("scroll"));
+</script>
 
 </body>
-
 </html>
