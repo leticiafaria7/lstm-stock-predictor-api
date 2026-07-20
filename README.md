@@ -174,8 +174,14 @@ resp.json()
 
 ## 🚀 Evolução do projeto
 
-- Limitações da predição:<br>O mercado é influenciado por eventos externos: taxa de juros, inflação, eleições, guerras, resultados trimestrais, notícias; não há como usar estes dados nas predições<br>.
-- Melhorar o desempenho do modelo de todos os tickers usados<br>Especialmente do RENT3, LREN3 e SMFT3 (os gráficos observados na aplicação mostram que o modelo ficou muito ruim, mas foram mantidos para compor o projeto de engenharia)<br>.
-- Retreino do modelo (diária ou semanalmente)<br>Além de monitorar a evolução do desempenho das novas versões<br>.
+- Limitações da predição:
+  - O mercado é influenciado por eventos externos: taxa de juros, inflação, eleições, guerras, resultados trimestrais, notícias; não há como usar estes dados nas predições
+- Melhorar o desempenho do modelo de todos os tickers usados
+  - Para os tickers RENT3, LREN3 e SMFT3, os gráficos observados na aplicação mostram que o modelo ficou muito ruim, mas foram mantidos para compor o projeto de engenharia
+  - Avaliar as features utilizadas (remover, adicionar outras)
+  - Fazer avaliações no Optuna com outras janelas de valores para os hiperparãmetros
+- Retreino do modelo (diária ou semanalmente)
+  - Monitorar a evolução do desempenho das novas versões
+  - Comparar o valor predito com o valor observado
 - Armazenar os artefatos do modelo no bucket do Supabase
 

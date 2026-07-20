@@ -19,12 +19,6 @@ pd.options.display.float_format = '{:.2f}'.format
 
 tickers = ['RENT3', 'LREN3', 'SMFT3', 'MULT3', 'VBBR3', 'ABEV3']
 
-sp_500 = """
-S&P 500, abreviação de Standard & Poor's 500, ou simplesmente S&P, 
-trata-se de um índice composto por quinhentos ativos cotados nas bolsas de NYSE ou NASDAQ, 
-qualificados devido ao seu tamanho de mercado, sua liquidez e sua representação de grupo industrial.
-"""
-
 path_dim_tickers = r'G:\Meu Drive\5. Cursos\Pós ML Engineering\Fase 4 - Deep Learning e IA\lstm-stock-predictor-api\dados\aux_data\ativos_ibov.parquet'
 
 # ---------------------------------------------------------------------------------- #
