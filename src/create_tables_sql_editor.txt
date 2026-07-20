@@ -95,3 +95,31 @@ TO anon;
 
 ALTER TABLE predictions
 DISABLE ROW LEVEL SECURITY;
+
+-- =====================================================================
+-- create table logs github actions
+-- =====================================================================
+
+create table public.workflow_logs (
+
+    id bigint generated always as identity primary key,
+
+    created_at timestamptz not null default now(),
+
+    workflow text not null,
+    status text not null,
+    message text,
+
+    duration_seconds numeric(10,2),
+
+    rows_historical_tickers integer not null default 0,
+    rows_historical_assets integer not null default 0,
+    rows_historical_indexes integer not null default 0,
+    rows_predictions integer not null default 0
+
+);
+
+grant select, insert on public.workflow_logs to anon;
+grant usage, select on sequence public.workflow_logs_id_seq to anon;
+
+alter table public.workflow_logs disable row level security;
