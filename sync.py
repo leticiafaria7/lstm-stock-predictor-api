@@ -3,8 +3,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.sync_database import sync_database
-from src.generate_predict import generate_predictions
-from src.utils import tickers, read_table
+from src.generate_predict import generate_predictions, read_table
+from src.utils import tickers
 from src.setup_logging import WorkflowLogger
 
 # sync_database(tickers)
