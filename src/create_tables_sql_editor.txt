@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS historical_tickers (
         UNIQUE ("Date","Ticker")
 );
 
-
 -- =====================================================================
 -- historical_assets
 -- =====================================================================
@@ -32,7 +31,6 @@ CREATE TABLE IF NOT EXISTS historical_assets (
     "Close_SP_500" DOUBLE PRECISION,
     "Close_Dolar" DOUBLE PRECISION
 );
-
 
 -- =====================================================================
 -- historical_indexes
