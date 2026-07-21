@@ -52,7 +52,7 @@ Para esta página não ficar muito extensa, foram criadas outras páginas de doc
     - Monitoramento do endpoint `/health` no UptimeRobot para evitar coldstart da aplicação
 
 ## 📐 Arquitetura
-> Plano arquitetural (em breve)
+![Plano arquitetural](docs/diagrama_arquitetural.png)
 
 ## 📂 Estrutura do projeto
 > ⚙️ *Em construção*
