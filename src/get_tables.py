@@ -93,20 +93,21 @@ def get_historical_data_assets(start = '2016-06-20', end = None):
 
 #     try:
 #         if start is None:
-#             start = date.today() - relativedelta(years=10)
-
-#         dados = sgs.get({"Selic": 11, "IPCA": 433}, start=start)
+#             dez_anos_atras = date.today() - relativedelta(years=10)
+#             dados = sgs.get({"Selic": 11, "IPCA": 433}, start=dez_anos_atras)
+#         else:
+#             dados = sgs.get({"Selic": 11, "IPCA": 433}, start=start)
 
 #     except SGSError:
 #         return pd.DataFrame(columns=["Date", "Selic", "IPCA"])
 
 #     dados["Selic"] = dados["Selic"].ffill()
 #     dados["IPCA"] = dados["IPCA"].ffill()
-
 #     dados = dados.dropna().reset_index()
 #     dados["Date"] = pd.to_datetime(dados["Date"])
 
 #     return dados
+
 
 def get_historical_br_indexes(start=None):
 
@@ -120,10 +121,33 @@ def get_historical_br_indexes(start=None):
     except SGSError:
         return pd.DataFrame(columns=["Date", "Selic", "IPCA"])
 
-    dados["Selic"] = dados["Selic"].ffill()
-    dados["IPCA"] = dados["IPCA"].ffill()
-    dados = dados.dropna().reset_index()
+    dados = (
+        dados
+        .ffill()
+        .dropna(how="all")
+        .reset_index()
+        .rename(columns={"index": "Date"})
+    )
+
     dados["Date"] = pd.to_datetime(dados["Date"])
+
+    ultima_data = dados["Date"].max().normalize()
+    hoje = pd.Timestamp.today().normalize()
+
+    if ultima_data < hoje:
+
+        datas_faltantes = pd.date_range(
+            ultima_data + pd.Timedelta(days=1),
+            hoje,
+            freq="D"
+        )
+
+        complemento = pd.DataFrame({"Date": datas_faltantes})
+
+        complemento["Selic"] = dados.iloc[-1]["Selic"]
+        complemento["IPCA"] = dados.iloc[-1]["IPCA"]
+
+        dados = pd.concat([dados, complemento], ignore_index=True)
 
     return dados
 
