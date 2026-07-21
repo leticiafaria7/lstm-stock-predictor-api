@@ -89,20 +89,39 @@ def get_historical_data_assets(start = '2016-06-20', end = None):
 
 # Histórico dos índices brasileiros
 
+# def get_historical_br_indexes(start=None):
+
+#     try:
+#         if start is None:
+#             start = date.today() - relativedelta(years=10)
+
+#         dados = sgs.get({"Selic": 11, "IPCA": 433}, start=start)
+
+#     except SGSError:
+#         return pd.DataFrame(columns=["Date", "Selic", "IPCA"])
+
+#     dados["Selic"] = dados["Selic"].ffill()
+#     dados["IPCA"] = dados["IPCA"].ffill()
+
+#     dados = dados.dropna().reset_index()
+#     dados["Date"] = pd.to_datetime(dados["Date"])
+
+#     return dados
+
 def get_historical_br_indexes(start=None):
 
     try:
         if start is None:
-            start = date.today() - relativedelta(years=10)
-
-        dados = sgs.get({"Selic": 11, "IPCA": 433}, start=start)
+            dez_anos_atras = date.today() - relativedelta(years=10)
+            dados = sgs.get({"Selic": 11, "IPCA": 433}, start=dez_anos_atras)
+        else:
+            dados = sgs.get({"Selic": 11, "IPCA": 433}, start=start)
 
     except SGSError:
         return pd.DataFrame(columns=["Date", "Selic", "IPCA"])
 
     dados["Selic"] = dados["Selic"].ffill()
     dados["IPCA"] = dados["IPCA"].ffill()
-
     dados = dados.dropna().reset_index()
     dados["Date"] = pd.to_datetime(dados["Date"])
 
