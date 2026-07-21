@@ -59,15 +59,11 @@ onde:
 - yi representa cada preço de fechamento;
 - n representa o número total de observações.
 
----
-
 ## Mediana
 
 É o valor central da série quando os preços são ordenados.
 
 A mediana é menos sensível a valores extremos do que a média.
-
----
 
 ## Desvio padrão
 
@@ -78,8 +74,6 @@ Mede o quanto os preços variam em torno da média.
 ```
 
 Quanto maior o desvio padrão, maior a volatilidade da ação.
-
----
 
 ## Coeficiente de Variação (CV)
 
@@ -93,9 +87,9 @@ CV = (σ / μ) × 100
 
 Esse indicador representa a volatilidade relativa da ação em porcentagem.
 
----
+# 3. Métricas de avaliação
 
-# MAE (Mean Absolute Error)
+## MAE (Mean Absolute Error)
 
 O MAE mede o erro absoluto médio entre previsão e valor real.
 
@@ -114,9 +108,7 @@ Quanto menor o MAE, melhor.
 
 Sua unidade é a mesma do preço da ação (reais).
 
----
-
-# RMSE (Root Mean Squared Error)
+## RMSE (Root Mean Squared Error)
 
 O RMSE mede a raiz do erro quadrático médio.
 
@@ -130,9 +122,7 @@ Por isso, o RMSE é bastante sensível a previsões muito distantes do valor rea
 
 Quanto menor, melhor.
 
----
-
-# MAPE (Mean Absolute Percentage Error)
+## MAPE (Mean Absolute Percentage Error)
 
 O MAPE mede o erro percentual médio.
 
@@ -148,9 +138,7 @@ Exemplo:
 
 significa que, em média, as previsões erram aproximadamente 2% do valor real.
 
----
-
-# sMAPE (Symmetric Mean Absolute Percentage Error)
+## sMAPE (Symmetric Mean Absolute Percentage Error)
 
 O sMAPE é uma versão simétrica do MAPE.
 
@@ -165,9 +153,7 @@ Sua vantagem é evitar distorções quando os valores reais estão muito próxim
 
 Em aplicações financeiras, costuma produzir medidas mais estáveis que o MAPE.
 
----
-
-# R² (Coeficiente de Determinação)
+## R² (Coeficiente de Determinação)
 
 O coeficiente de determinação mede quanto da variabilidade dos preços é explicada pelo modelo.
 
@@ -187,9 +173,7 @@ Valores possíveis:
 
 Quanto mais próximo de 1, melhor.
 
----
-
-# Modelo Naive
+# 4. Modelo Naive
 
 Além da rede LSTM, foi utilizado um modelo extremamente simples denominado **Naive Forecast**.
 
@@ -211,9 +195,7 @@ Como cada janela temporal possui os últimos preços observados, o último eleme
 
 Após desfazer a normalização, obtém-se a previsão do modelo Naive.
 
----
-
-# Por que comparar com o Naive?
+## Por que comparar com o Naive?
 
 Em séries temporais financeiras, o preço de hoje normalmente é muito parecido com o de ontem.
 
@@ -223,9 +205,7 @@ Caso uma rede neural profunda não consiga superar esse modelo, ela provavelment
 
 Por esse motivo, o Naive é amplamente utilizado como baseline na literatura de previsão de séries temporais.
 
----
-
-# MAE Naive
+## MAE Naive
 
 Corresponde ao erro absoluto médio obtido pelo modelo Naive.
 
@@ -235,9 +215,7 @@ MAE_naive =
 Σ |yi − y(t−1)|
 ```
 
----
-
-# RMSE Naive
+## RMSE Naive
 
 Erro quadrático médio do modelo Naive.
 
@@ -249,9 +227,7 @@ RMSE_naive =
 )
 ```
 
----
-
-# MAPE Naive
+## MAPE Naive
 
 Erro percentual médio produzido pelo modelo Naive.
 
@@ -261,9 +237,7 @@ MAPE_naive =
 Σ |(yi − y(t−1))/yi|
 ```
 
----
-
-# Skill Score (RMSE)
+## Skill Score (RMSE)
 
 O Skill Score mede o ganho obtido pelo modelo em relação ao baseline Naive.
 
@@ -285,9 +259,7 @@ Interpretação:
 
 Quanto maior o Skill Score, maior o ganho obtido pela rede LSTM.
 
----
-
-# MAE/Media (%)
+## MAE/Media (%)
 
 Como ações possuem preços muito diferentes, o MAE absoluto nem sempre é facilmente interpretável.
 
@@ -300,9 +272,7 @@ MAE/Media =
 
 Esse indicador representa o erro absoluto médio em relação ao preço médio negociado.
 
----
-
-# RMSE/Media (%)
+## RMSE/Media (%)
 
 Da mesma forma, o RMSE também pode ser normalizado.
 
@@ -313,9 +283,7 @@ RMSE/Media =
 
 Essa métrica facilita a comparação entre ativos com escalas de preço bastante diferentes.
 
----
-
-# Melhor que Naive
+## Melhor que Naive
 
 Por fim, é criada uma variável booleana indicando se o modelo superou ou não o baseline.
 
