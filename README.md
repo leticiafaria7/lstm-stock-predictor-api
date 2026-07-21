@@ -184,4 +184,5 @@ resp.json()
   - Monitorar a evolução do desempenho das novas versões
   - Comparar o valor predito com o valor observado
 - Armazenar os artefatos do modelo no bucket do Supabase
+- Evitar fazer previsões para o final de semana e feriados
 

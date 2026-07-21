@@ -1,14 +1,15 @@
 from dotenv import load_dotenv
-
 load_dotenv()
+
+import tempfile
+import yfinance as yf
+
+yf.set_tz_cache_location(tempfile.mkdtemp())
 
 from src.sync_database import sync_database
 from src.generate_predict import generate_predictions, read_table
 from src.utils import tickers
 from src.setup_logging import WorkflowLogger
-
-# sync_database(tickers)
-# generate_predictions(tickers)
 
 logger = WorkflowLogger("daily_sync")
 
