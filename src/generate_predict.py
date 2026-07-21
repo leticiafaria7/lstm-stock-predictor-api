@@ -1,3 +1,7 @@
+# ----------------------------------------------------------------------------------------------- #
+# Imports
+# ----------------------------------------------------------------------------------------------- #
+
 import joblib
 import numpy as np
 import pandas as pd
@@ -6,6 +10,10 @@ from tensorflow.keras.models import load_model
 
 from src.instances import supabase
 from src.get_tables import get_analitical_table
+
+# ----------------------------------------------------------------------------------------------- #
+# Gerar predições
+# ----------------------------------------------------------------------------------------------- #
 
 def read_table(table_name, batch_size=1000):
 

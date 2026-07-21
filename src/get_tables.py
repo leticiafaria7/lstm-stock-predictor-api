@@ -13,13 +13,11 @@ from dateutil.relativedelta import relativedelta
 pd.set_option('display.max_columns', None)
 pd.options.display.float_format = '{:.2f}'.format
 
-# from src.utils import tickers
-
 # ---------------------------------------------------------------------------------- #
 # Funções para gerar as tabelas
 # ---------------------------------------------------------------------------------- #
 
-## Histórico de tickers
+## Histórico de tickers ---------------------------------------------------------------------------
 
 def get_historical_data_tickers(tickers, start="2016-06-20", end=None):
 
@@ -50,7 +48,7 @@ def get_historical_data_tickers(tickers, start="2016-06-20", end=None):
 
     return df.reset_index(drop=True)
 
-# Histórico dos outros ativos
+# Histórico dos outros ativos ---------------------------------------------------------------------
 
 def get_historical_data_assets(start="2016-06-20", end=None):
 
@@ -93,7 +91,8 @@ def get_historical_data_assets(start="2016-06-20", end=None):
 
     return df.reset_index(drop=True)
 
-# Histórico dos índices brasileiros
+# Histórico dos índices brasileiros ---------------------------------------------------------------
+
 def get_historical_br_indexes(start=None):
 
     try:
@@ -155,7 +154,7 @@ def calculate_rsi(df, close_column = 'close'):
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
 
-    # RSI Wilder (média exponencial) --------------------------
+    # RSI Wilder (média exponencial) 
     avg_gain = gain.ewm(alpha=1/14, adjust=False).mean()
     avg_loss = loss.ewm(alpha=1/14, adjust=False).mean()
     rs = avg_gain / avg_loss
@@ -200,7 +199,7 @@ def get_analitical_table(ticker, df_hist_tickers, df_ativos, df_br_indexes):
     for asset in ['sp_500', 'dolar', 'ibovespa']:
         tmp[f"close_{asset}"] = tmp[f"close_{asset}"].ffill()
 
-    # métricas adicionais -------------------------------------------------------------------
+    # métricas adicionais -------------------------------------------------------------------------
 
     # médias móveis
     tmp["ma20"] = tmp["close"].rolling(20).mean()

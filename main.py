@@ -8,14 +8,9 @@ load_dotenv()
 from flask import Flask
 from config import Config, BASE_DIR
 
-from src.instances import bp, swagger, jwt, supabase, setup_logging, register_request_logging
-
-from src.sync_database import sync_database
-from src.utils import tickers
+from src.instances import bp, swagger
 
 import os
-
-from src.api import api_endpoints, home_numbers_and_plots
 
 # ----------------------------------------------------------------------------------------------- #
 # Inicializações
@@ -27,13 +22,11 @@ app = Flask(__name__,
             static_folder = os.path.join(BASE_DIR, "src", "static")
             )
 
+# instanciar configs
 app.config.from_object(Config)
 
-# inicializar as instâncias no app
+# iinicializar a documentação com swagger
 swagger.init_app(app)
-# jwt.init_app(app)
-# setup_logging(app)
-register_request_logging(app, supabase)
 
 # registrar as rotas
 app.register_blueprint(bp)
@@ -44,6 +37,7 @@ app.register_blueprint(bp)
 
 if __name__ == '__main__':
     with app.app_context():
+        print(BASE_DIR)
+        print(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        # app.run(debug=True)
 
-        # inicia a API
-        app.run(debug=True)

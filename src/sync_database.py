@@ -3,7 +3,6 @@
 # Imports
 # ----------------------------------------------------------------------------------------------- #
 
-from datetime import timedelta, date
 import pandas as pd
 import numpy as np
 
@@ -73,7 +72,7 @@ def upsert_dataframe(df, table_name, on_conflict):
     ).execute()
     
 # ----------------------------------------------------------------------------------------------- #
-# Funcao que popula as tabelas, e se ja estiver populada, preenche ate a data atual
+# Função que popula as tabelas, e se já estiver populada, preenche ate a data atual
 # ----------------------------------------------------------------------------------------------- #
 
 def sync_database(tickers):
