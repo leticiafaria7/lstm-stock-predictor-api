@@ -78,9 +78,11 @@ Para esta página não ficar muito extensa, foram criadas outras páginas de doc
 │   ├── generate_predict.py
 │   ├── get_tables.py
 │   ├── instances.py
+│   ├── setup_logging.py
 │   ├── sync_database.py
 │   └── utils.py
 ├── tests/
+│   ├── get_folder_trees.py
 │   └── api_tests.ipynb
 ├── train_model/
 │   ├── dados/
@@ -111,6 +113,9 @@ Para esta página não ficar muito extensa, foram criadas outras páginas de doc
 │   ├── 5_testes_modelo.ipynb
 │   ├── 6_refino_modelos.ipynb
 │   └── 7_salvar_pickle_metadata.ipynb
+├── .github
+│   └── workflows
+│       └── sync.yml
 ├── .gitignore
 ├── config.py
 ├── main.py
@@ -185,4 +190,5 @@ resp.json()
   - Comparar o valor predito com o valor observado
 - Armazenar os artefatos do modelo no bucket do Supabase
 - Evitar fazer previsões para o final de semana e feriados
+- Adicionar um check no GitHub Actions para verificar se a lib já foi atualizada, se não tiver sido, tentar novamente em 30 minutos
 
