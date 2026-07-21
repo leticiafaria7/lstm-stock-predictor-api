@@ -7,7 +7,7 @@ import numpy as np
 import yfinance as yf
 from bcb import sgs
 from bcb.exceptions import SGSError
-from datetime import date
+from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 
 pd.set_option('display.max_columns', None)
@@ -21,94 +21,79 @@ pd.options.display.float_format = '{:.2f}'.format
 
 ## Histórico de tickers
 
-def get_historical_data_tickers(tickers, start = '2016-06-20', end = None):
+def get_historical_data_tickers(tickers, start="2016-06-20", end=None):
 
     if end is None:
-        end = date.today().strftime("%Y-%m-%d")
+        end = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
 
     df = yf.download(
-        [f"{t}.SA" for t in tickers],
-        start = start,
-        end = end,
+        [f"{ticker}.SA" for ticker in tickers],
+        start=start,
+        end=end,
         interval="1d",
         auto_adjust=True,
         progress=False
     )
 
     if df.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=["Date", "Ticker", "Open", "High", "Low", "Close", "Volume"])
 
     df = df.stack(level="Ticker", future_stack=True).reset_index()
 
-    if df.empty:
-        return pd.DataFrame()
-    df["Ticker"] = df["Ticker"].str.replace(".SA", "", regex=False)
+    if df.empty or "Date" not in df.columns:
+        return pd.DataFrame(columns=["Date", "Ticker", "Open", "High", "Low", "Close", "Volume"])
 
-    if "Date" not in df.columns:
-        return pd.DataFrame()
-    df['Date'] = pd.to_datetime(df['Date']).dt.date
-    df['Date'] = pd.to_datetime(df['Date'])
+    df["Ticker"] = df["Ticker"].str.replace(".SA", "", regex=False)
+    df["Date"] = pd.to_datetime(df["Date"])
 
     df = df.dropna(subset=["Open", "High", "Low", "Close"], how="all")
 
-    return df
+    return df.reset_index(drop=True)
 
 # Histórico dos outros ativos
 
-def get_historical_data_assets(start = '2016-06-20', end = None):
+def get_historical_data_assets(start="2016-06-20", end=None):
 
     if end is None:
-        end = date.today().strftime("%Y-%m-%d")
+        end = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
 
     ativos = {
-        "^BVSP":"Ibovespa",   # Ibovespa
-        "^GSPC":'SP_500',     # S&P 500
-        "USDBRL=X":'Dolar'    # Dólar
+        "^BVSP": "Ibovespa", # Ibovespa
+        "^GSPC": "SP_500",   # S&P 500
+        "USDBRL=X": "Dolar" # Dolar
     }
 
-    df_ativos = yf.download(
+    df = yf.download(
         list(ativos.keys()),
-        start = start,
-        end = end,
+        start=start,
+        end=end,
         interval="1d",
         auto_adjust=True,
         progress=False
     )
 
-    df_ativos = df_ativos.stack(level="Ticker", future_stack=True).reset_index()
-    df_ativos["Ticker"] = df_ativos["Ticker"].str.replace(".SA", "", regex=False)
-    df_ativos['Date'] = pd.to_datetime(df_ativos['Date']).dt.date
-    df_ativos['Ticker'] = df_ativos['Ticker'].map(ativos)
+    if df.empty:
+        return pd.DataFrame(columns=["Date", "Close_Dolar", "Close_Ibovespa", "Close_SP_500"])
 
-    df_ativos = df_ativos.pivot(index = ['Date'], columns = 'Ticker', 
-                                values = ['Close']).reset_index()
-    df_ativos.columns = ['_'.join(map(str, col)).strip('_') for col in df_ativos.columns.values]
-    df_ativos['Date'] = pd.to_datetime(df_ativos['Date'])
+    df = df.stack(level="Ticker", future_stack=True).reset_index()
 
-    return df_ativos
+    if df.empty or "Date" not in df.columns:
+        return pd.DataFrame(columns=["Date", "Close_Dolar", "Close_Ibovespa", "Close_SP_500"])
+
+    df["Ticker"] = df["Ticker"].map(ativos)
+    df["Date"] = pd.to_datetime(df["Date"])
+
+    df = df.dropna(subset=["Close"], how="all")
+
+    df = (
+        df.pivot(index="Date", columns="Ticker", values="Close")
+          .rename(columns=lambda x: f"Close_{x}")
+          .reset_index()
+    )
+
+    return df.reset_index(drop=True)
 
 # Histórico dos índices brasileiros
-
-# def get_historical_br_indexes(start=None):
-
-#     try:
-#         if start is None:
-#             dez_anos_atras = date.today() - relativedelta(years=10)
-#             dados = sgs.get({"Selic": 11, "IPCA": 433}, start=dez_anos_atras)
-#         else:
-#             dados = sgs.get({"Selic": 11, "IPCA": 433}, start=start)
-
-#     except SGSError:
-#         return pd.DataFrame(columns=["Date", "Selic", "IPCA"])
-
-#     dados["Selic"] = dados["Selic"].ffill()
-#     dados["IPCA"] = dados["IPCA"].ffill()
-#     dados = dados.dropna().reset_index()
-#     dados["Date"] = pd.to_datetime(dados["Date"])
-
-#     return dados
-
-
 def get_historical_br_indexes(start=None):
 
     try:
@@ -121,31 +106,28 @@ def get_historical_br_indexes(start=None):
     except SGSError:
         return pd.DataFrame(columns=["Date", "Selic", "IPCA"])
 
-    dados = (
-        dados
-        .ffill()
-        .dropna(how="all")
-        .reset_index()
-        .rename(columns={"index": "Date"})
-    )
+    dados["Selic"] = dados["Selic"].ffill()
+    dados["IPCA"] = dados["IPCA"].ffill()
 
+    dados = dados.dropna().reset_index()
     dados["Date"] = pd.to_datetime(dados["Date"])
 
-    ultima_data = dados["Date"].max().normalize()
     hoje = pd.Timestamp.today().normalize()
+    ultima_data = dados["Date"].max().normalize()
 
     if ultima_data < hoje:
 
         datas_faltantes = pd.date_range(
-            ultima_data + pd.Timedelta(days=1),
-            hoje,
+            start=ultima_data + pd.Timedelta(days=1),
+            end=hoje,
             freq="D"
         )
 
-        complemento = pd.DataFrame({"Date": datas_faltantes})
-
-        complemento["Selic"] = dados.iloc[-1]["Selic"]
-        complemento["IPCA"] = dados.iloc[-1]["IPCA"]
+        complemento = pd.DataFrame({
+            "Date": datas_faltantes,
+            "Selic": dados.iloc[-1]["Selic"],
+            "IPCA": dados.iloc[-1]["IPCA"]
+        })
 
         dados = pd.concat([dados, complemento], ignore_index=True)
 
