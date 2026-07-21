@@ -1,3 +1,5 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import time
 from src.instances import supabase
 
@@ -7,6 +9,7 @@ class WorkflowLogger:
 
         self.workflow = workflow
         self.start = time.perf_counter()
+        self.started_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
 
     def save(
         self,
@@ -32,3 +35,4 @@ class WorkflowLogger:
             "rows_predictions": rows_predictions
 
         }).execute()
+        
