@@ -31,6 +31,20 @@
   --radius:14px;
   --shadow:0 12px 30px -14px rgba(42,27,20,0.35);
   --sidebar-w:250px;
+  --heading:var(--espresso);
+  --strong-border:var(--espresso);
+  --cream-fixed:#fbf1de;
+}
+
+:root[data-theme="dark"]{
+  --paper:#20140d;
+  --ink:#f3e7d6;
+  --ink-soft:#c9b29c;
+  --cream-soft:#2c1d13;
+  --line:rgba(255,255,255,0.12);
+  --shadow:0 12px 30px -14px rgba(0,0,0,0.65);
+  --heading:#f6e9d6;
+  --strong-border:#d3b689;
 }
 
 *{ box-sizing:border-box; }
@@ -48,7 +62,7 @@ h1,h2,h3,h4{
   font-family:'Roboto',sans-serif;
   font-weight:900;
   margin:0;
-  color:var(--espresso);
+  color:var(--heading);
   letter-spacing:-0.01em;
 }
 p{ margin:0 0 1em 0; }
@@ -108,8 +122,8 @@ aside.sidebar{
   transition:background .2s ease,color .2s ease;
 }
 .menu a:hover{ background:rgba(255,255,255,0.07); color:#fff; }
-.menu a.active{ background:var(--tan); color:var(--espresso); }
-.menu a.active .num{ color:var(--espresso); }
+.menu a.active{ background:rgba(196, 154, 100, 0.18); color:var(--cream); }
+.menu a.active .num{ color:var(--tan-light); }
 .menu a .num{
   font-family:'Roboto Mono',monospace;
   font-size:0.68rem;
@@ -189,13 +203,15 @@ section + section{ border-top:1px solid var(--line); }
 }
 .hero-candles{
   position:absolute; inset:0;
-  display:flex; align-items:flex-end; gap:6px;
-  padding:0 40px;
-  opacity:.5;
   z-index:0;
+  opacity:.6;
 }
-.candle{ width:10px; border-radius:2px 2px 0 0; animation:candleGrow 5.5s ease-in-out infinite; transform-origin:bottom; }
-@keyframes candleGrow{ 0%,100%{ transform:scaleY(.72); } 50%{ transform:scaleY(1); } }
+.hero-line{
+  fill:none;
+  stroke-linejoin:round;
+  stroke-linecap:round;
+  transition:stroke-dashoffset 3.2s ease-out;
+}
 .hero-inner{ position:relative; z-index:2; max-width:760px; }
 .hero .eyebrow{ color:var(--tan-light); }
 .hero h1{ font-size:2.85rem; color:#fff; line-height:1.12; margin:14px 0 22px 0; }
@@ -208,9 +224,28 @@ section + section{ border-top:1px solid var(--line); }
   border-radius:999px;
   background:rgba(255,255,255,0.08);
   border:1px solid rgba(255,255,255,0.14);
-  color:var(--cream-soft);
+  color:var(--cream-fixed);
 }
 .badge b{ color:var(--tan-light); }
+
+/* ---------- alternador de modo escuro ---------- */
+.theme-toggle{
+  position:fixed;
+  top:20px;
+  right:24px;
+  z-index:1200;
+  width:44px; height:44px;
+  border-radius:50%;
+  border:1px solid var(--line);
+  background:var(--paper);
+  color:var(--ink);
+  font-size:1.05rem;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  box-shadow:var(--shadow);
+  transition:transform .2s ease, background .2s ease;
+}
+.theme-toggle:hover{ transform:translateY(-3px); }
 
 /* ---------- cards genericos ---------- */
 .card{
@@ -240,7 +275,7 @@ section + section{ border-top:1px solid var(--line); }
   background:var(--accent, var(--rust));
 }
 .stock-card .ticker-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
-.stock-card .ticker{ font-family:'Roboto Mono',monospace; font-weight:700; font-size:1.05rem; color:var(--espresso); }
+.stock-card .ticker{ font-family:'Roboto Mono',monospace; font-weight:700; font-size:1.05rem; color:var(--heading); }
 .stock-card .sector-tag{
   font-size:0.64rem;
   font-family:'Roboto Condensed',sans-serif;
@@ -258,7 +293,7 @@ section + section{ border-top:1px solid var(--line); }
 .stock-meta dt{ color:var(--ink-soft); font-family:'Roboto Condensed',sans-serif; font-weight:600; }
 .stock-meta dd{ margin:0 0 8px 0; color:var(--ink); }
 
-.period-card h3{ font-size:1.15rem; color:var(--espresso); margin-bottom:14px; }
+.period-card h3{ font-size:1.15rem; color:var(--heading); margin-bottom:14px; }
 .period-warning{
   display:inline-block;
   font-family:'Roboto Mono',monospace;
@@ -272,13 +307,13 @@ section + section{ border-top:1px solid var(--line); }
 }
 .period-list{ display:flex; flex-direction:column; gap:18px; }
 .period-row{ display:grid; grid-template-columns:120px 1fr 190px; align-items:center; gap:16px; }
-.period-ticker{ font-family:'Roboto Mono',monospace; font-weight:700; color:var(--espresso); font-size:0.9rem; }
+.period-ticker{ font-family:'Roboto Mono',monospace; font-weight:700; color:var(--heading); font-size:0.9rem; }
 .period-ticker .company{ display:block; font-family:'Roboto',sans-serif; font-weight:400; font-size:0.7rem; color:var(--ink-soft); margin-top:2px; }
 .period-track{ position:relative; height:14px; background:var(--cream-soft); border-radius:999px; border:1px solid var(--line); overflow:hidden; }
 .period-fill{ position:absolute; top:0; bottom:0; border-radius:999px; }
 .period-dates{ font-family:'Roboto Mono',monospace; font-size:0.76rem; color:var(--ink-soft); text-align:right; }
 .period-axis{ display:grid; grid-template-columns:120px 1fr 190px; gap:16px; margin-top:8px; padding-top:10px; border-top:1px dashed var(--line); }
-.period-axis span{ font-family:'Roboto Mono',monospace; font-size:0.7rem; color:var(--ink-soft); }
+.period-axis-track{ display:flex; justify-content:space-between; font-family:'Roboto Mono',monospace; font-size:0.7rem; color:var(--ink-soft); }
 
 /* ---------- features ---------- */
 .feature-grid{
@@ -309,7 +344,7 @@ section + section{ border-top:1px solid var(--line); }
   min-height:90px;
   font-size:0.85rem;
   line-height:1.7;
-  color:var(--espresso);
+  color:var(--heading);
   margin-top:22px;
 }
 
@@ -335,7 +370,7 @@ section + section{ border-top:1px solid var(--line); }
 }
 .ticker-btn.selected{ background:var(--espresso); border-color:var(--espresso); color:#fff; }
 .ticker-btn.selected .company{ color:var(--tan-light); }
-.ticker-btn:hover:not(.selected){ border-color:var(--rust); color:var(--espresso); }
+.ticker-btn:hover:not(.selected){ border-color:var(--rust); color:var(--heading); }
 
 .perf-panel{ display:flex; flex-direction:column; gap:18px; }
 .chart-card{ padding:24px; }
@@ -343,9 +378,10 @@ section + section{ border-top:1px solid var(--line); }
   display:flex; justify-content:space-between; align-items:flex-start;
   flex-wrap:wrap; gap:12px; margin-bottom:10px;
 }
-.chart-card-head h4{ font-size:1.08rem; color:var(--espresso); }
+.chart-card-head h4{ font-size:1.08rem; color:var(--heading); }
 .metric-row{ display:flex; gap:10px; flex-wrap:wrap; }
 .metric-chip{
+  position:relative;
   background:var(--cream-soft);
   border:1px solid var(--line);
   border-radius:10px;
@@ -353,12 +389,45 @@ section + section{ border-top:1px solid var(--line); }
   font-family:'Roboto Mono',monospace;
   min-width:74px;
   text-align:center;
+  cursor:help;
 }
 .metric-chip b{
   display:block; font-size:0.56rem; font-family:'Roboto Condensed',sans-serif;
   text-transform:uppercase; letter-spacing:0.06em; color:var(--rust); font-weight:700; margin-bottom:4px;
 }
-.metric-chip span{ font-size:1.02rem; font-weight:700; color:var(--espresso); }
+.metric-chip span{ font-size:1.02rem; font-weight:700; color:var(--heading); }
+.metric-chip .tooltip{
+  visibility:hidden;
+  opacity:0;
+  position:absolute;
+  top:calc(100% + 10px);
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--espresso);
+  color:#fbf1de;
+  font-family:'Roboto',sans-serif;
+  font-weight:400;
+  font-size:0.72rem;
+  line-height:1.5;
+  padding:10px 13px;
+  border-radius:9px;
+  width:230px;
+  text-align:left;
+  z-index:80;
+  box-shadow:var(--shadow);
+  transition:opacity .15s ease;
+  pointer-events:none;
+}
+.metric-chip .tooltip::before{
+  content:"";
+  position:absolute;
+  bottom:100%;
+  left:50%;
+  transform:translateX(-50%);
+  border:6px solid transparent;
+  border-bottom-color:var(--espresso);
+}
+.metric-chip:hover .tooltip{ visibility:visible; opacity:1; }
 
 /* ---------- API ---------- */
 table.spec{ width:100%; border-collapse:collapse; margin-top:8px; font-size:0.86rem; }
@@ -370,7 +439,7 @@ table.spec th{
   font-size:0.7rem;
   color:var(--rust);
   padding:10px;
-  border-bottom:2px solid var(--espresso);
+  border-bottom:2px solid var(--strong-border);
 }
 table.spec td{ padding:14px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
 table.spec td.method{ font-family:'Roboto Mono',monospace; font-weight:700; text-transform:uppercase; }
@@ -394,20 +463,21 @@ table.spec code{ background:var(--cream-soft); padding:2px 7px; border-radius:5p
   border-radius:var(--radius);
   padding:20px 24px;
   font-size:0.86rem;
-  color:var(--espresso);
+  color:var(--heading);
   margin-top:26px;
 }
-.callout h3{ font-size:1rem; margin-bottom:8px; color:var(--maroon-dark); }
+.callout h3{ font-size:1rem; margin-bottom:8px; color:var(--heading); }
 .callout p{ font-size:0.86rem; color:var(--ink-soft); }
 
 footer{
   background:var(--espresso);
   color:rgba(251,243,226,.75);
-  padding:48px 64px;
+  padding:22px 64px;
   text-align:center;
+  line-height:1.35;
 }
-footer strong{ display:block; font-size:1.15rem; color:var(--cream-soft); margin-bottom:10px; }
-footer p{ margin-top:6px; opacity:.85; font-size:0.82rem; }
+footer strong{ display:block; font-size:0.85rem; color:var(--cream-fixed); font-weight:700; margin:0; }
+footer p{ margin:0; opacity:.85; font-size:0.68rem; }
 
 .reveal{ opacity:0; transform:translateY(32px); transition:all .7s ease; }
 
@@ -432,6 +502,11 @@ footer p{ margin-top:6px; opacity:.85; font-size:0.82rem; }
 </head>
 
 <body>
+
+<button class="theme-toggle" id="themeToggle" title="Alternar modo escuro" aria-label="Alternar modo escuro">
+  <span id="themeIcon">🌙</span>
+</button>
+
 <div class="shell">
 
 <aside class="sidebar">
@@ -471,7 +546,7 @@ footer p{ margin-top:6px; opacity:.85; font-size:0.82rem; }
 
   <!-- HERO / SOBRE -->
   <section id="sobre" class="hero">
-    <div class="hero-candles" id="heroCandles"></div>
+    <svg class="hero-candles" id="heroCandles" viewBox="0 0 1200 300" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"></svg>
     <div class="hero-inner">
       <span class="eyebrow">Projeto de Machine Learning · Previsão de Séries Temporais</span>
       <h1>{{ project_title }}</h1>
@@ -518,7 +593,11 @@ footer p{ margin-top:6px; opacity:.85; font-size:0.82rem; }
       <h3>Período histórico disponível</h3>
       <span class="period-warning">⚠ o período considera apenas a janela de dados utilizada no treinamento do modelo; dados mais recentes podem já estar disponíveis para inferência.</span>
       <div class="period-list" id="periodList"></div>
-      <div class="period-axis" id="periodAxis"></div>
+      <div class="period-axis" id="periodAxis">
+        <span></span>
+        <div class="period-axis-track" id="periodAxisTrack"></div>
+        <span></span>
+      </div>
     </div>
   </section>
 
@@ -571,10 +650,22 @@ footer p{ margin-top:6px; opacity:.85; font-size:0.82rem; }
           <div class="chart-card-head">
             <h4 id="perfTitle"></h4>
             <div class="metric-row">
-              <div class="metric-chip"><b>MAE</b><span id="maeValue"></span></div>
-              <div class="metric-chip"><b>RMSE</b><span id="rmseValue"></span></div>
-              <div class="metric-chip"><b>MAPE</b><span id="mapeValue"></span></div>
-              <div class="metric-chip"><b>SMAPE</b><span id="smapeValue"></span></div>
+              <div class="metric-chip">
+                <b>MAE</b><span id="maeValue"></span>
+                <div class="tooltip">MAE (mean absolute error): erro absoluto médio entre a previsão e o valor real. A unidade é a mesma do preço da ação (R$).</div>
+              </div>
+              <div class="metric-chip">
+                <b>RMSE</b><span id="rmseValue"></span>
+                <div class="tooltip">RMSE (root mean squared error): raiz do erro quadrático médio. É mais sensível a previsões muito distantes do valor real.</div>
+              </div>
+              <div class="metric-chip">
+                <b>MAPE</b><span id="mapeValue"></span>
+                <div class="tooltip">MAPE (mean absolute percentage error): erro percentual médio, independente da escala dos preços. Ex.: as previsões erram, em média, x% do valor real.</div>
+              </div>
+              <div class="metric-chip">
+                <b>SMAPE</b><span id="smapeValue"></span>
+                <div class="tooltip">SMAPE (symmetric mean absolute percentage error): versão simétrica do MAPE; evita distorções quando os valores reais estão muito próximos de zero.</div>
+              </div>
             </div>
           </div>
           <div id="predictionChart" style="height:440px;"></div>
@@ -633,19 +724,47 @@ footer p{ margin-top:6px; opacity:.85; font-size:0.82rem; }
 </div>
 
 <script>
-/* ---------- hero candles decoration ---------- */
+/* ---------- hero: linha de gráfico de ações com animação de desenho ---------- */
 (function(){
-  const wrap = document.getElementById('heroCandles');
-  const palette = ['#6f1d1b','#bb9457','#99582a','#ffe6a7'];
-  for(let i=0;i<60;i++){
-    const el = document.createElement('div');
-    el.className='candle';
-    el.style.height = (20 + Math.random()*140)+'px';
-    el.style.background = palette[i % palette.length];
-    el.style.animationDelay = (Math.random()*5)+'s';
-    el.style.animationDuration = (4+Math.random()*3)+'s';
-    wrap.appendChild(el);
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById('heroCandles');
+  const width = 1200, height = 300;
+
+  function buildPath(baseY, amplitude, points){
+    let d = "";
+    let y = baseY;
+    const step = width/(points-1);
+    for(let i=0;i<points;i++){
+      const x = i*step;
+      y += (Math.random()-0.5)*amplitude;
+      y = Math.max(25, Math.min(height-15, y));
+      d += (i===0 ? `M${x},${y}` : ` L${x},${y}`);
+    }
+    return d;
   }
+
+  function addLine(color, baseY, amplitude, points, widthPx, opacity, delay){
+    const path = document.createElementNS(svgNS,'path');
+    path.setAttribute('d', buildPath(baseY, amplitude, points));
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', widthPx);
+    path.setAttribute('opacity', opacity);
+    path.classList.add('hero-line');
+    svg.appendChild(path);
+
+    const length = path.getTotalLength();
+    path.style.strokeDasharray = length;
+    path.style.strokeDashoffset = length;
+
+    setTimeout(()=>{
+      path.style.transitionDelay = delay+'s';
+      path.style.strokeDashoffset = 0;
+    }, 80);
+  }
+
+  addLine('#ffe6a7', 195, 55, 34, 2, 0.35, 0.35);
+  addLine('#bb9457', 150, 48, 30, 2.5, 0.5, 0.15);
+  addLine('#ffffff', 170, 62, 40, 3, 0.9, 0);
 })();
 
 /* ---------- dados das empresas (usados no timeline e no título do gráfico) ---------- */
@@ -681,8 +800,12 @@ const companiesData = [
     list.appendChild(row);
   });
 
-  const axis = document.getElementById('periodAxis');
-  axis.innerHTML = `<span></span><span>${new Date(rangeStart).getUTCFullYear()}</span><span style="text-align:right">${new Date(rangeEnd).getUTCFullYear()}</span>`;
+  const startYear = new Date(rangeStart).getUTCFullYear();
+  const midYear = new Date(rangeStart + total/2).getUTCFullYear();
+  const endYear = new Date(rangeEnd).getUTCFullYear();
+
+  const axisTrack = document.getElementById('periodAxisTrack');
+  axisTrack.innerHTML = `<span>${startYear}</span><span>${midYear}</span><span>${endYear}</span>`;
 })();
 
 /* ---------- features clicáveis ---------- */
@@ -714,7 +837,41 @@ function changeTicker(ticker, element){
 
   const chart = graficos[ticker];
   Plotly.newPlot("predictionChart", chart.data, chart.layout, { responsive:true, displayModeBar:false });
+  applyChartTheme();
 }
+
+/* ---------- modo escuro ---------- */
+let isDarkMode = false;
+
+function applyChartTheme(){
+  const el = document.getElementById("predictionChart");
+  if(!el || !el.data) return;
+  const textColor = isDarkMode ? "#e7d8c4" : "#6b5240";
+  const gridColor = isDarkMode ? "rgba(255,255,255,0.09)" : "rgba(67,40,24,0.08)";
+  Plotly.relayout("predictionChart", {
+    "font.color": textColor,
+    "xaxis.tickfont.color": textColor,
+    "yaxis.tickfont.color": textColor,
+    "yaxis.gridcolor": gridColor,
+    "legend.font.color": textColor
+  });
+}
+
+function setTheme(dark){
+  isDarkMode = dark;
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  document.getElementById("themeIcon").textContent = dark ? "☀️" : "🌙";
+  try{ localStorage.setItem("lstm-theme", dark ? "dark" : "light"); }catch(e){}
+  applyChartTheme();
+}
+
+document.getElementById("themeToggle").addEventListener("click", ()=> setTheme(!isDarkMode));
+
+(function(){
+  let saved = null;
+  try{ saved = localStorage.getItem("lstm-theme"); }catch(e){}
+  if(saved === "dark") setTheme(true);
+})();
 
 window.addEventListener("load", ()=>{
   changeTicker(

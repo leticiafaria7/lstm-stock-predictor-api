@@ -10,6 +10,8 @@ from config import Config, BASE_DIR
 
 from src.instances import bp, swagger
 
+from src.api import api_endpoints, home_numbers_and_plots
+
 import os
 
 # ----------------------------------------------------------------------------------------------- #
@@ -37,7 +39,5 @@ app.register_blueprint(bp)
 
 if __name__ == '__main__':
     with app.app_context():
-        print(BASE_DIR)
-        print(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        # app.run(debug=True)
+        app.run(debug=True)
 
