@@ -163,7 +163,7 @@ def rebuild_predictions(ticker, hist, assets, indexes):
     valid_df = data.iloc[train_end:valid_end].copy()
     test_df = data.iloc[valid_end:].copy()
 
-    scaler.fit(train_df)
+    # scaler.fit(train_df)
 
     train_scaled = scaler.transform(train_df)
     valid_scaled = scaler.transform(valid_df)

@@ -14,6 +14,8 @@ from src.api import api_endpoints, home_numbers_and_plots
 
 import os
 
+from src.monitoring_middleware import register_monitoring
+
 # ----------------------------------------------------------------------------------------------- #
 # Inicializações
 # ----------------------------------------------------------------------------------------------- #
@@ -32,6 +34,9 @@ swagger.init_app(app)
 
 # registrar as rotas
 app.register_blueprint(bp)
+
+# monitoramento prometheus
+register_monitoring(app)
 
 # ----------------------------------------------------------------------------------------------- #
 # Executar o app localmente

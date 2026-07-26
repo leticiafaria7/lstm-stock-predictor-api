@@ -5,11 +5,30 @@
 
 from pathlib import Path
 import joblib
+import time
+import pandas as pd
 
-from flask import jsonify
+from flask import jsonify, Response
 from src.instances import supabase, bp
 
 MODELS_DIR = Path("train_model/models")
+
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+
+from src.monitoring import (
+    DATABASE_UP,
+    PREDICTIONS_ROWS,
+    SUPPORTED_MODELS,
+    MODEL_MAE,
+    MODEL_RMSE,
+    MODEL_MAPE,
+    WORKFLOW_DURATION,
+    WORKFLOW_LAST_SUCCESS,
+    WORKFLOW_FAILURES,
+    PREDICTION_REQUESTS,
+    PREDICTION_ERRORS,
+    PREDICTION_DURATION
+)
 
 # ----------------------------------------------------------------------------------------------- #
 # Funções auxiliares
@@ -280,6 +299,89 @@ def model_metrics(ticker):
 # Predict
 # ----------------------------------------------------------------------------------------------- #
 
+# @bp.route("/api/v1/predict/<ticker>", methods=["POST"])
+# def predict(ticker):
+#     """
+#     Retorna a previsão do preço de fechamento para o próximo pregão de um ticker.
+
+#     ---
+#     tags:
+#       - Prediction
+
+#     parameters:
+#       - name: ticker
+#         in: path
+#         required: true
+#         type: string
+#         example: "ABEV3"
+#         description: Código do ativo para gerar a previsão.
+
+#     responses:
+#       200:
+#         description: Previsão encontrada para o ticker informado.
+#         schema:
+#           type: object
+#           properties:
+#             Ticker:
+#               type: string
+#               example: "ABEV3"
+#               description: Código do ativo previsto.
+#             Date:
+#               type: string
+#               format: date
+#               example: "2026-07-20"
+#               description: Data de referência da previsão.
+#             Close:
+#               type: number
+#               example: 12.45
+#               description: Último preço de fechamento observado.
+#             Predict:
+#               type: number
+#               example: 12.62
+#               description: Preço de fechamento previsto para o próximo pregão.
+
+#       404:
+#         description: Modelo ou previsão não encontrados.
+#         schema:
+#           type: object
+#           properties:
+#             error:
+#               type: string
+#               examples:
+#                 ticker:
+#                   value: "Ticker não suportado"
+#                 prediction:
+#                   value: "Previsão não encontrada"
+
+#       500:
+#         description: Erro interno ao consultar a previsão.
+#         schema:
+#           type: object
+#           properties:
+#             error:
+#               type: string
+#               example: "Erro ao consultar previsão"
+#     """
+
+#     file = MODELS_DIR / f"metadata_{ticker}.pkl"
+
+#     if not file.exists():
+#         return jsonify({"error": "Ticker não suportado"}), 404
+
+#     r = (
+#         supabase.table("predictions")
+#         .select("*")
+#         .eq("Ticker", ticker)
+#         .order("Date", desc=True)
+#         .limit(1)
+#         .execute()
+#     )
+
+#     if len(r.data) == 0:
+#         return jsonify({"error": "Previsão não encontrada"}), 404
+
+#     return jsonify(r.data[0])
+
 @bp.route("/api/v1/predict/<ticker>", methods=["POST"])
 def predict(ticker):
     """
@@ -295,18 +397,18 @@ def predict(ticker):
         required: true
         type: string
         example: "ABEV3"
-        description: Código do ativo para gerar a previsão.
+        description: Código do ativo para consultar a previsão.
 
     responses:
       200:
-        description: Previsão encontrada para o ticker informado.
+        description: Previsão encontrada com sucesso.
         schema:
           type: object
           properties:
             Ticker:
               type: string
               example: "ABEV3"
-              description: Código do ativo previsto.
+              description: Código do ativo.
             Date:
               type: string
               format: date
@@ -314,15 +416,17 @@ def predict(ticker):
               description: Data de referência da previsão.
             Close:
               type: number
+              format: float
               example: 12.45
-              description: Último preço de fechamento observado.
-            Predict:
+              description: Último preço de fechamento disponível.
+            Predict_D1:
               type: number
+              format: float
               example: 12.62
-              description: Preço de fechamento previsto para o próximo pregão.
+              description: Previsão do preço de fechamento para o próximo pregão.
 
       404:
-        description: Modelo ou previsão não encontrados.
+        description: Ticker não suportado ou previsão inexistente.
         schema:
           type: object
           properties:
@@ -341,79 +445,197 @@ def predict(ticker):
           properties:
             error:
               type: string
-              example: "Erro ao consultar previsão"
+              example: "Erro interno do servidor"
     """
 
-    file = MODELS_DIR / f"metadata_{ticker}.pkl"
+    start = time.perf_counter()
 
-    if not file.exists():
-        return jsonify({"error": "Ticker não suportado"}), 404
+    PREDICTION_REQUESTS.labels(
+        ticker=ticker
+    ).inc()
 
-    r = (
-        supabase.table("predictions")
-        .select("*")
-        .eq("Ticker", ticker)
-        .order("Date", desc=True)
-        .limit(1)
-        .execute()
-    )
+    try:
 
-    if len(r.data) == 0:
-        return jsonify({"error": "Previsão não encontrada"}), 404
+        file = MODELS_DIR / f"metadata_{ticker}.pkl"
 
-    return jsonify(r.data[0])
+        if not file.exists():
+
+            PREDICTION_ERRORS.labels(
+                ticker=ticker
+            ).inc()
+
+            return jsonify({"error": "Ticker não suportado"}), 404
+
+        r = (
+            supabase.table("predictions")
+            .select("*")
+            .eq("Ticker", ticker)
+            .order("Date", desc=True)
+            .limit(1)
+            .execute()
+        )
+
+        if len(r.data) == 0:
+
+            PREDICTION_ERRORS.labels(
+                ticker=ticker
+            ).inc()
+
+            return jsonify({"error": "Previsão não encontrada"}), 404
+
+        return jsonify(r.data[0])
+
+    finally:
+
+        PREDICTION_DURATION.labels(
+            ticker=ticker
+        ).observe(
+            time.perf_counter() - start
+        )
 
 # ----------------------------------------------------------------------------------------------- #
 # Métricas para Prometheus
 # ----------------------------------------------------------------------------------------------- #
 
+# @bp.route("/metrics", methods=["GET"])
+# def metrics():
+#     """
+#     Retorna métricas da aplicação no formato Prometheus.
+
+#     ---
+#     tags:
+#       - Monitoring
+
+#     responses:
+#       200:
+#         description: Métricas da API no formato Prometheus.
+#         content:
+#           text/plain:
+#             example: |
+#               # HELP api_predictions_total Number of predictions
+#               # TYPE api_predictions_total gauge
+#               api_predictions_total 120
+
+#               # HELP api_database_up Database status
+#               # TYPE api_database_up gauge
+#               api_database_up 1
+
+#         schema:
+#           type: string
+#           description: Métricas de monitoramento para coleta pelo Prometheus.
+
+#       500:
+#         description: Erro interno ao gerar as métricas.
+#         schema:
+#           type: object
+#           properties:
+#             error:
+#               type: string
+#               example: "Erro ao gerar métricas"
+#     """
+
+#     rows = len(read_table("predictions"))
+
+#     text = f"""
+# # HELP api_predictions_total Number of predictions
+# # TYPE api_predictions_total gauge
+# api_predictions_total {rows}
+
+# # HELP api_database_up Database status
+# # TYPE api_database_up gauge
+# api_database_up {1 if check_database() else 0}
+# """
+
+#     return text, 200, {"Content-Type": "text/plain"}
+
 @bp.route("/metrics", methods=["GET"])
 def metrics():
+
     """
-    Retorna métricas da aplicação no formato Prometheus.
+    Retorna as métricas da aplicação no formato Prometheus.
 
     ---
     tags:
       - Monitoring
 
+    produces:
+      - text/plain
+
     responses:
       200:
-        description: Métricas da API no formato Prometheus.
-        content:
-          text/plain:
-            example: |
-              # HELP api_predictions_total Number of predictions
-              # TYPE api_predictions_total gauge
-              api_predictions_total 120
-
-              # HELP api_database_up Database status
-              # TYPE api_database_up gauge
-              api_database_up 1
-
+        description: Métricas da API para coleta pelo Prometheus.
         schema:
           type: string
-          description: Métricas de monitoramento para coleta pelo Prometheus.
+          example: |
+            # HELP http_requests_total Total HTTP requests
+            # TYPE http_requests_total counter
+            http_requests_total{endpoint="/health",method="GET",status="200"} 10
 
-      500:
-        description: Erro interno ao gerar as métricas.
-        schema:
-          type: object
-          properties:
-            error:
-              type: string
-              example: "Erro ao gerar métricas"
-    """
+            # HELP prediction_requests_total Prediction requests
+            # TYPE prediction_requests_total counter
+            prediction_requests_total{ticker="ABEV3"} 15
 
-    rows = len(read_table("predictions"))
+            # HELP database_up Database status
+            # TYPE database_up gauge
+            database_up 1
 
-    text = f"""
-# HELP api_predictions_total Number of predictions
-# TYPE api_predictions_total gauge
-api_predictions_total {rows}
+            # HELP model_mae Model MAE
+            # TYPE model_mae gauge
+            model_mae{ticker="ABEV3"} 0.208
 
-# HELP api_database_up Database status
-# TYPE api_database_up gauge
-api_database_up {1 if check_database() else 0}
-"""
+    description: |
+      Endpoint utilizado pelo Prometheus para coleta periódica das métricas da API.
 
-    return text, 200, {"Content-Type": "text/plain"}
+      As principais métricas disponibilizadas incluem:
+
+      - http_requests_total
+      - http_request_duration_seconds
+      - http_request_errors_total
+      - prediction_requests_total
+      - prediction_latency_seconds
+      - prediction_errors_total
+      - database_up
+      - predictions_rows
+      - supported_models
+      - model_mae
+      - model_rmse
+      - model_mape
+      - workflow_duration_seconds
+      - workflow_last_success_timestamp
+      - workflow_failures_total
+      """
+
+    DATABASE_UP.set(1 if check_database() else 0)
+
+    PREDICTIONS_ROWS.set(len(read_table("predictions")))
+
+    model_files = list(MODELS_DIR.glob("metadata_*.pkl"))
+    SUPPORTED_MODELS.set(len(model_files))
+
+    for file in model_files:
+
+        meta = joblib.load(file)
+        ticker = meta["ticker"]
+
+        MODEL_MAE.labels(ticker=ticker).set(meta["metrics"]["mae"])
+        MODEL_RMSE.labels(ticker=ticker).set(meta["metrics"]["rmse"])
+        MODEL_MAPE.labels(ticker=ticker).set(meta["metrics"]["mape"])
+
+    logs = read_table("workflow_logs")
+
+    logs = pd.DataFrame(read_table("workflow_logs"))
+
+    if not logs.empty:
+
+        logs = logs.sort_values("created_at")
+
+        last = logs.iloc[-1]
+
+        WORKFLOW_DURATION.set(last["duration_seconds"])
+
+        if last["status"] == "success":
+            WORKFLOW_LAST_SUCCESS.set(pd.Timestamp(last["created_at"]).timestamp())
+
+        WORKFLOW_FAILURES.set(int((logs["status"] == "error").sum()))
+
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)

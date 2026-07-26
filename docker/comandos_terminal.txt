@@ -1,0 +1,6 @@
+docker compose up -d # criar os containers do arquivo docker-compose.yml
+docker ps # ver os containers
+
+# abrir prometheus no navegador
+http://localhost:9090
+status > target health
