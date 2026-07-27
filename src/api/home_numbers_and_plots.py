@@ -443,7 +443,7 @@ def home():
         metrics_json=context["metrics_json"],
         charts_json=context["charts_json"],
         features_json=context["features_json"],
-        github_url="https://github.com/leticiafaria7",
+        github_url="https://github.com/leticiafaria7/lstm-stock-predictor-api",
         swagger_url="/apidocs/",
         project_title="Modelo LSTM para prever preço de fechamento de ações",
         project_description="API Flask para previsão diária de preço de fechamento utilizando modelos LSTM treinados individualmente para cada ativo. Os dados são sincronizados diariamente com o Supabase, processados automaticamente e disponibilizados por meio de endpoints REST documentados via Swagger."
