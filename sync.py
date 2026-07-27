@@ -12,6 +12,7 @@ yf.set_tz_cache_location(tempfile.mkdtemp())
 
 from src.sync_database import sync_database
 from src.generate_predict import generate_predictions, read_table
+from src.build_dashboard_cache import build_and_cache_dashboard
 from src.utils import tickers
 from src.setup_logging import WorkflowLogger
 
@@ -25,6 +26,11 @@ try:
 
     sync_database(tickers)
     generate_predictions(tickers)
+
+    # Reprocessa métricas/gráficos uma única vez por dia e grava o
+    # resultado pronto no Supabase, para a API não precisar carregar
+    # os modelos LSTM a cada request.
+    build_and_cache_dashboard()
 
     logger.save(
         status="success",
@@ -47,3 +53,4 @@ except Exception as e:
     )
 
     raise
+

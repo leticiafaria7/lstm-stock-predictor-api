@@ -123,3 +123,39 @@ grant select, insert on public.workflow_logs to anon;
 grant usage, select on sequence public.workflow_logs_id_seq to anon;
 
 alter table public.workflow_logs disable row level security;
+
+-- =====================================================================
+-- dashboard_cache
+--
+-- Tabela "single row" (id sempre = 1) que guarda todos os objetos já
+-- prontos para renderizar a home (sidebar, cards, métricas e gráficos
+-- em JSON). É atualizada 1x por dia no sync.py, evitando que a API
+-- precise carregar os modelos LSTM e reprocessar as tabelas históricas
+-- a cada request (o que estava estourando o limite de memória do
+-- plano gratuito do Render).
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS dashboard_cache (
+
+    id SMALLINT PRIMARY KEY DEFAULT 1,
+
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    sidebar JSONB NOT NULL,
+    companies JSONB NOT NULL,
+    features JSONB NOT NULL,
+    endpoints JSONB NOT NULL,
+    tickers JSONB NOT NULL,
+    default_ticker TEXT NOT NULL,
+
+    metrics JSONB NOT NULL,
+    charts JSONB NOT NULL,
+
+    CONSTRAINT single_row CHECK (id = 1)
+);
+
+GRANT SELECT, INSERT, UPDATE
+ON TABLE dashboard_cache
+TO anon;
+
+ALTER TABLE dashboard_cache DISABLE ROW LEVEL SECURITY;

@@ -2,8 +2,6 @@
 # Imports
 # ----------------------------------------------------------------------------------------------- #
 
-print('MAIN IMPORTADO')
-
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -12,7 +10,8 @@ from config import Config, BASE_DIR
 
 from src.instances import bp, swagger
 
-from src.api import api_endpoints, home_numbers_and_plots
+from src.api import api_endpoints
+from src.api import home_numbers_and_plots
 
 import os
 
@@ -39,8 +38,6 @@ app.register_blueprint(bp)
 
 # monitoramento prometheus
 register_monitoring(app)
-
-print('FLASK APP CRIADO')
 
 # ----------------------------------------------------------------------------------------------- #
 # Executar o app localmente

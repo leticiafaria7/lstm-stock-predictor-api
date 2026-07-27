@@ -52,6 +52,9 @@ def upsert_dataframe(df, table_name, on_conflict):
 
     df = df.copy()
 
+    # remove colunas que não existem no Supabase
+    df = df.drop(columns=["Adj Close"], errors="ignore")
+
     df["Date"] = df["Date"].astype(str)
 
     # elimina infinitos
