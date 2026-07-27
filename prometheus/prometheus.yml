@@ -11,10 +11,3 @@ scrape_configs:
 
       - targets:
           - lstm-stock-predictor-api.onrender.com
-
-          # producao
-          # - sua-api.onrender.com
-
-
-
-===
