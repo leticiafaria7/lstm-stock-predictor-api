@@ -10,7 +10,7 @@ scrape_configs:
     static_configs:
 
       - targets:
-          - host.docker.internal:5000
+          - lstm-stock-predictor-api.onrender.com
 
           # producao
           # - sua-api.onrender.com

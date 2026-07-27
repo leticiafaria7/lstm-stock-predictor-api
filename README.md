@@ -2,14 +2,14 @@
 
 *Tech Challenge da Fase 2 da [pós-graduação em Engenharia de Machine Learning FIAP](https://postech.fiap.com.br/curso/machine-learning-engineering/)*
 
-> 📈 Link para a API (em breve)
+> 📈 Link para a API: https://lstm-stock-predictor-api.onrender.com/
 
 > 🎥 Vídeo com demonstração técnica do projeto (em breve)
 
 ## 🎯 Sobre o projeto
 O projeto tem como objetivo a construção e deploy de um modelo de redes neurais Long-Short Term Memory (LSTM) para prever valor de fechamento das ações de uma empresa da bolsa.
 
-Para esta página não ficar muito extensa, foram criadas outras páginas de documentação sobre o modelo LSTM:
+Para saber mais sobre o modelo LSTM:
 
 - [Visão geral sobre LSTM](docs/about_lstm.md)
 - [Variáveis usadas no modelo](docs/about_stock_predicting_variables.md)
@@ -29,7 +29,7 @@ Para esta página não ficar muito extensa, foram criadas outras páginas de doc
     - Monitoramento do modelo
 3. **Armazenamento dos dados no Supabase**
     - Criação do projeto no Supabase
-    - Criar tabelas para receber os dados no SQL Editor (Código disponivel em [create_tables_sql_editor.txt](src/create_tables_sql_editor.txt))
+    - Criar tabelas para receber os dados no SQL Editor (código disponivel em [create_tables_sql_editor.txt](src/create_tables_sql_editor.txt))
     - Conexão com o banco (credenciais em .env)
     - Função para popular as tabelas e atualizar em [sync.py](sync.py)
 4. **CI/CD para atualização diária dos dados**
@@ -55,14 +55,21 @@ Para esta página não ficar muito extensa, foram criadas outras páginas de doc
 ![Plano arquitetural](docs/diagrama_arquitetural.png)
 
 ## 📂 Estrutura do projeto
-> ⚙️ *Em construção*
 ```
+├── .github/
+│   └── workflows/
+│       └── sync.yml
+├── docker/
+│   └── comandos_terminal.txt
 ├── docs/
 │   ├── about_lstm.md
 │   ├── about_lstm_architecture.md
 │   ├── about_lstm_evaluation_metrics.md
-│   └── about_stock_predicting_variables.md
-├── logs/
+│   ├── about_stock_predicting_variables.md
+│   └── diagrama_arquitetural.png
+├── grafana/
+├── prometheus/
+│   └── prometheus.yml
 ├── src/
 │   ├── api/
 │   │   ├── api_endpoints.py
@@ -74,21 +81,21 @@ Para esta página não ficar muito extensa, foram criadas outras páginas de doc
 │   ├── templates/
 │   │   └── home.html
 │   ├── __init__.py
+│   ├── build_dashboard_cache.py
 │   ├── create_tables_sql_editor.txt
 │   ├── generate_predict.py
 │   ├── get_tables.py
 │   ├── instances.py
+│   ├── monitoring.py
+│   ├── monitoring_middleware.py
 │   ├── setup_logging.py
 │   ├── sync_database.py
 │   └── utils.py
 ├── tests/
-│   ├── get_folder_trees.py
-│   └── api_tests.ipynb
+│   ├── api_tests.ipynb
+│   └── get_folder_tree.ipynb
 ├── train_model/
 │   ├── dados/
-│   │   ├── aux_data/
-│   │   ├── raw_trusted/
-│   │   └── refined/
 │   ├── models/
 │   │   ├── lstm_ABEV3.keras
 │   │   ├── lstm_LREN3.keras
@@ -102,7 +109,7 @@ Para esta página não ficar muito extensa, foram criadas outras páginas de doc
 │   │   ├── scaler_LREN3.pkl
 │   │   ├── scaler_RENT3.pkl
 │   │   └── scaler_SMFT3.pkl
-│   ├── src/
+│   ├── src
 │   │   ├── generate_predict.py
 │   │   ├── get_tables.py
 │   │   └── model_functions.py
@@ -113,11 +120,11 @@ Para esta página não ficar muito extensa, foram criadas outras páginas de doc
 │   ├── 5_testes_modelo.ipynb
 │   ├── 6_refino_modelos.ipynb
 │   └── 7_salvar_pickle_metadata.ipynb
-├── .github
-│   └── workflows
-│       └── sync.yml
+├── .env
 ├── .gitignore
+├── .python-version
 ├── config.py
+├── docker-compose.yml
 ├── main.py
 ├── README.md
 ├── requirements.txt
@@ -126,7 +133,7 @@ Para esta página não ficar muito extensa, foram criadas outras páginas de doc
 
 ## 🧭 Rotas da API (Endpoints)
 
-A documentação é obtida automaticamente com Swagger e pode ser acessada em ATUALIZAR
+A documentação é obtida automaticamente com Swagger e pode ser acessada em: https://lstm-stock-predictor-api.onrender.com/apidocs/
 
 Método | Endpoint | Descrição
 --- | --- | ---
@@ -140,7 +147,7 @@ GET | `/metrics` | Métricas Prometheus para monitoramento.
 Se não tiver a biblioteca `requests` instalada → executar no terminal `pip install requests`
 ```
 import requests
-url = ATUALIZAR
+url = 'https://lstm-stock-predictor-api.onrender.com/'
 ```
 
 ### 1. Obter predict em D+1
@@ -176,7 +183,6 @@ print(resp.status_code)
 resp.json()
 ```
 
-
 ## 🚀 Evolução do projeto
 
 - Limitações da predição:
@@ -188,7 +194,8 @@ resp.json()
 - Retreino do modelo (diária ou semanalmente)
   - Monitorar a evolução do desempenho das novas versões
   - Comparar o valor predito com o valor observado
-- Armazenar os artefatos do modelo no bucket do Supabase
+- Armazenar os artefatos do modelo no bucket do Supabase para puxar de lá e não do repositório
 - Evitar fazer previsões para o final de semana e feriados
-- Adicionar um check no GitHub Actions para verificar se a lib já foi atualizada, se não tiver sido, tentar novamente em 30 minutos
+- Adicionar um check no GitHub Actions para verificar se a lib yfinance já foi atualizada, se não tiver sido, tentar novamente em 30 minutos
+- Refinar o dash de monitoramento do Grafana
 
