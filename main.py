@@ -2,6 +2,8 @@
 # Imports
 # ----------------------------------------------------------------------------------------------- #
 
+print('MAIN IMPORTADO')
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -37,6 +39,8 @@ app.register_blueprint(bp)
 
 # monitoramento prometheus
 register_monitoring(app)
+
+print('FLASK APP CRIADO')
 
 # ----------------------------------------------------------------------------------------------- #
 # Executar o app localmente
