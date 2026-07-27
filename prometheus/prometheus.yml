@@ -3,11 +3,12 @@ global:
 
 scrape_configs:
 
-  - job_name: "lstm-stock-api"
+  - job_name: lstm-stock-api
+
+    scheme: https
 
     metrics_path: /metrics
 
     static_configs:
-
       - targets:
           - lstm-stock-predictor-api.onrender.com

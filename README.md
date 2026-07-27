@@ -198,4 +198,5 @@ resp.json()
 - Evitar fazer previsões para o final de semana e feriados
 - Adicionar um check no GitHub Actions para verificar se a lib yfinance já foi atualizada, se não tiver sido, tentar novamente em 30 minutos
 - Refinar o dash de monitoramento do Grafana
+- Atualmente, o Prometheus e o Grafana só rodam de forma local, com o docker aberto. Futuramente, pode ser interessante hospedá-los em um servidor como Kubernetes e apontar o Prometheus para o endpoint `/metrics` da API em produção
 
