@@ -33,7 +33,7 @@ Para saber mais sobre o modelo LSTM:
     - Conexão com o banco (credenciais em .env)
     - Função para popular as tabelas e atualizar em [sync.py](sync.py)
 4. **CI/CD para atualização diária dos dados**
-    - Rotina no GitHub Actions para executar o [sync.py](sync.py) diariamente às 20h
+    - Rotina no GitHub Actions para executar o [sync.py](sync.py) diariamente às 6h (no fuso de SP)
 5. **Construção da API**
     - Definição dos endpoints
     - Obtenção dos dados a serem servidos nos endpoints a partir da conexão com o banco
