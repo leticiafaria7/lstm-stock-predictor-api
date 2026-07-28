@@ -4,7 +4,7 @@
 
 > 📈 Link para a API: https://lstm-stock-predictor-api.onrender.com/
 
-> 🎥 Vídeo com demonstração técnica do projeto (em breve)
+> 🎥 Vídeo com demonstração técnica do projeto: https://youtu.be/uUk6TkxFTJg
 
 ## 🎯 Sobre o projeto
 O projeto tem como objetivo a construção e deploy de um modelo de redes neurais Long-Short Term Memory (LSTM) para prever valor de fechamento das ações de uma empresa da bolsa.
