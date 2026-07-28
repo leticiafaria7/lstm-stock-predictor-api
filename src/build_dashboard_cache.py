@@ -20,6 +20,13 @@ from src.utils import TICKERS, COMPANIES, FEATURE_DESCRIPTIONS, CHART_COLORS
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELS_DIR = os.path.join(BASE_DIR, "train_model/models")
 
+# Tamanho FIXO (em dias úteis) da janela usada para o backtest exibido
+# no gráfico. Antes era uma % do tamanho da tabela (que cresce todo
+# dia), o que fazia o "teste" mudar de composição a cada sync e as
+# métricas oscilarem sem o modelo ter mudado. Com uma janela fixa, o
+# teste de hoje é quase o mesmo de ontem (só desliza 1 dia).
+TEST_WINDOW_DAYS = 90
+
 # ----------------------------------------------------------------------------------------------- #
 # Leitura das tabelas históricas
 # ----------------------------------------------------------------------------------------------- #
@@ -63,6 +70,30 @@ def load_tables():
     indexes["Date"] = pd.to_datetime(indexes["Date"])
 
     return hist, assets, indexes
+
+
+def load_latest_prediction(ticker):
+    """
+    Busca em 'predictions' a última linha (Date mais recente) gravada
+    para o ticker por generate_predictions() no mesmo sync. É esse
+    valor que vira o último ponto do gráfico, garantindo que o predict
+    exibido seja idêntico ao armazenado.
+    """
+
+    response = (
+        supabase
+        .table("predictions")
+        .select("*")
+        .eq("Ticker", ticker)
+        .order("Date", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if not response.data:
+        return None
+
+    return response.data[0]
 
 # ----------------------------------------------------------------------------------------------- #
 # Funções auxiliares de modelagem / métricas
@@ -134,7 +165,7 @@ def create_dataset(ticker, hist, assets, indexes):
     )
 
 
-def rebuild_predictions(ticker, hist, assets, indexes):
+def rebuild_predictions(ticker, hist, assets, indexes, test_window_days=TEST_WINDOW_DAYS):
 
     model, scaler, metadata = load_model_and_scaler(ticker)
 
@@ -147,19 +178,14 @@ def rebuild_predictions(ticker, hist, assets, indexes):
 
     n = len(data)
 
-    train_end = int(n * 0.70)
-    valid_end = int(n * 0.85)
+    # Janela de teste FIXA (não proporcional a n): pega os últimos
+    # `test_window_days` pontos, com `window_size` dias extras de
+    # "aquecimento" antes deles para montar as sequências do LSTM.
+    test_start = max(0, n - test_window_days - window_size)
+    test_df = data.iloc[test_start:]
 
-    train_df = data.iloc[:train_end].copy()
-    valid_df = data.iloc[train_end:valid_end].copy()
-    test_df = data.iloc[valid_end:].copy()
-
-    train_scaled = scaler.transform(train_df)
-    valid_scaled = scaler.transform(valid_df)
+    # Transforma com o scaler já treinado (nunca re-fit em produção)
     test_scaled = scaler.transform(test_df)
-
-    _, _ = build_lstm_sequences(window_size, train_scaled)
-    _, _ = build_lstm_sequences(window_size, valid_scaled)
 
     X_test, y_test = build_lstm_sequences(window_size, test_scaled)
 
@@ -172,7 +198,7 @@ def rebuild_predictions(ticker, hist, assets, indexes):
     naive = inverse_close(naive_scaled, scaler, len(features))
 
     dates = (
-        df.iloc[valid_end + window_size:]
+        df.iloc[test_start + window_size:]
         .date
         .dt.strftime("%Y-%m-%d")
         .tolist()
@@ -185,33 +211,57 @@ def rebuild_predictions(ticker, hist, assets, indexes):
         "SMAPE": round(smape(real, pred), 2)
     }
 
+    # Último ponto: o predict de D+1 já gravado em 'predictions' pelo
+    # generate_predictions() (roda antes, no mesmo sync). Não é
+    # recalculado aqui, só lido, para o gráfico bater exatamente com
+    # o valor armazenado.
+    forecast = load_latest_prediction(ticker)
+
     return {
         "real": real,
         "pred": pred,
         "naive": naive,
         "dates": dates,
-        "metrics": metrics
+        "metrics": metrics,
+        "forecast": forecast
     }
 
 
 def build_prediction_chart(result, ticker):
 
+    dates = list(result["dates"])
+    real = list(result["real"])
+    pred = list(result["pred"])
+    naive = list(result["naive"])
+
+    forecast = result.get("forecast")
+
+    # Acrescenta o ponto de D+1 (ainda sem valor real) usando o mesmo
+    # número gravado na tabela 'predictions'.
+    if forecast is not None and forecast["Date"] not in dates:
+
+        dates.append(forecast["Date"])
+        pred.append(forecast["Predict_D1"])
+        real.append(None)
+        naive.append(forecast["Close"])
+
     fig = go.Figure()
 
     fig.add_trace(
         go.Scatter(
-            x=result["dates"],
-            y=result["real"],
+            x=dates,
+            y=real,
             mode="lines",
             name="Real",
-            line=dict(width=2.6, color=CHART_COLORS["real"])
+            line=dict(width=2.6, color=CHART_COLORS["real"]),
+            connectgaps=False
         )
     )
 
     fig.add_trace(
         go.Scatter(
-            x=result["dates"],
-            y=result["pred"],
+            x=dates,
+            y=pred,
             mode="lines",
             name="LSTM",
             line=dict(width=2.6, color=CHART_COLORS["pred"])
@@ -220,8 +270,8 @@ def build_prediction_chart(result, ticker):
 
     fig.add_trace(
         go.Scatter(
-            x=result["dates"],
-            y=result["naive"],
+            x=dates,
+            y=naive,
             mode="lines",
             name="Naive",
             line=dict(width=1.8, color=CHART_COLORS["naive"], dash="dot")
@@ -403,9 +453,11 @@ def save_dashboard_cache(dashboard):
 
 def build_and_cache_dashboard():
     """
-    Função de entrada, pensada para ser chamada dentro do sync.py.
-    Reprocessa os modelos/gráficos uma única vez por dia e grava
-    o resultado pronto (JSON) no Supabase.
+    Função de entrada, pensada para ser chamada dentro do sync.py,
+    DEPOIS de generate_predictions(tickers) (para 'predictions' já
+    estar atualizada com o D+1 do dia).
+    Reprocessa métricas/gráficos uma única vez por dia e grava o
+    resultado pronto (JSON) no Supabase.
     """
 
     dashboard = build_dashboard()

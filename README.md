@@ -199,4 +199,4 @@ resp.json()
 - Adicionar um check no GitHub Actions para verificar se a lib yfinance já foi atualizada, se não tiver sido, tentar novamente em 30 minutos
 - Refinar o dash de monitoramento do Grafana
 - Atualmente, o Prometheus e o Grafana só rodam de forma local, com o docker aberto. Futuramente, pode ser interessante hospedá-los em um servidor como Kubernetes e apontar o Prometheus para o endpoint `/metrics` da API em produção
-
+- Entender como tratar o modelo quando as ações sofrem desdobramentos (um papel é dividido em vários, diminuindo o preço unitário na mesma proporção) ou quando pagam dividendos

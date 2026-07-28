@@ -1,4 +1,3 @@
-
 # ----------------------------------------------------------------------------------------------- #
 # Imports
 # ----------------------------------------------------------------------------------------------- #
@@ -13,6 +12,21 @@ from src.get_tables import (
     get_historical_data_tickers,
     get_historical_br_indexes
 )
+
+# ----------------------------------------------------------------------------------------------- #
+# Configurações
+# ----------------------------------------------------------------------------------------------- #
+
+# yfinance usa auto_adjust=True, que reajusta retroativamente TODO o
+# histórico de preços (dividendos/JCP/splits) a cada download, relativo
+# à data do download. Como a sincronização é incremental, isso cria uma
+# quebra de escala entre o preço "antigo" já salvo (ajustado até a data
+# do sync anterior) e o preço "novo" (ajustado até hoje) sempre que uma
+# data-ex de provento acontece entre dois syncs. Para curar isso,
+# rebaixamos o ponto de partida em alguns dias e deixamos o upsert
+# sobrescrever os registros recentes já existentes com o fator de
+# ajuste atualizado.
+LOOKBACK_DAYS_HEALING = 90
 
 # ----------------------------------------------------------------------------------------------- #
 # Funções auxiliares
@@ -45,6 +59,19 @@ def last_date(table_name):
     return response.data[0]["Date"]
 
 
+def healed_start_date(table_name, lookback_days=LOOKBACK_DAYS_HEALING):
+    """
+    Retorna a última data salva menos `lookback_days`, para que o
+    próximo fetch reescreva (upsert) a janela recente com o fator de
+    ajuste de proventos mais atual, em vez de só buscar dados novos.
+    """
+
+    ultima = pd.to_datetime(last_date(table_name))
+    inicio = ultima - pd.Timedelta(days=lookback_days)
+
+    return inicio.strftime("%Y-%m-%d")
+
+
 def upsert_dataframe(df, table_name, on_conflict):
 
     if df.empty:
@@ -67,20 +94,19 @@ def upsert_dataframe(df, table_name, on_conflict):
         .to_dict("records")
     )
 
-    # records = df.to_dict("records")
-
     supabase.table(table_name).upsert(
         records,
         on_conflict=on_conflict
     ).execute()
-    
+
 # ----------------------------------------------------------------------------------------------- #
 # Função que popula as tabelas, e se já estiver populada, preenche ate a data atual
 # ----------------------------------------------------------------------------------------------- #
 
 def sync_database(tickers):
 
-    # Histórico ações ----------------------------------------------------
+    # Histórico ações -----------------------------------------------------
+    # (afetado por dividendos/JCP -> precisa da janela de "cura")
 
     if table_is_empty("historical_tickers"):
 
@@ -89,17 +115,18 @@ def sync_database(tickers):
 
     else:
 
-        inicio = last_date("historical_tickers")
+        inicio = healed_start_date("historical_tickers")
 
         df = get_historical_data_tickers(tickers, start=inicio)
         upsert_dataframe(df, "historical_tickers", "Date,Ticker")
 
-    # Histórico ativos ---------------------------------------------------
+    # Histórico ativos ------------------------------------------------------
+    # (índices/câmbio não sofrem ajuste retroativo por proventos, mantém incremental)
 
     if table_is_empty("historical_assets"):
 
         df = get_historical_data_assets()
-        upsert_dataframe(df,"historical_assets", "Date")
+        upsert_dataframe(df, "historical_assets", "Date")
 
     else:
 
@@ -116,7 +143,7 @@ def sync_database(tickers):
         upsert_dataframe(df, "historical_indexes", "Date")
 
         print("Carga inicial concluída.")
-        
+
     else:
 
         inicio = last_date("historical_indexes")
