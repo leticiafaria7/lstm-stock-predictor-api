@@ -1,6 +1,6 @@
 # Modelo LSTM | Predição de valor de fechamento na bolsa de valores
 
-*Tech Challenge da Fase 2 da [pós-graduação em Engenharia de Machine Learning FIAP](https://postech.fiap.com.br/curso/machine-learning-engineering/)*
+*Tech Challenge da Fase 4 da [pós-graduação em Engenharia de Machine Learning FIAP](https://postech.fiap.com.br/curso/machine-learning-engineering/)*
 
 > 📈 Link para a API: https://lstm-stock-predictor-api.onrender.com/
 
