@@ -17,16 +17,20 @@ from src.get_tables import (
 # Configurações
 # ----------------------------------------------------------------------------------------------- #
 
-# yfinance usa auto_adjust=True, que reajusta retroativamente TODO o
-# histórico de preços (dividendos/JCP/splits) a cada download, relativo
-# à data do download. Como a sincronização é incremental, isso cria uma
-# quebra de escala entre o preço "antigo" já salvo (ajustado até a data
-# do sync anterior) e o preço "novo" (ajustado até hoje) sempre que uma
-# data-ex de provento acontece entre dois syncs. Para curar isso,
-# rebaixamos o ponto de partida em alguns dias e deixamos o upsert
-# sobrescrever os registros recentes já existentes com o fator de
-# ajuste atualizado.
-LOOKBACK_DAYS_HEALING = 90
+# yfinance usa auto_adjust=True, que reajusta retroativamente o
+# histórico de preços (dividendos/JCP) a cada download, relativo à
+# data do download. Como a sincronização é incremental, precisamos
+# re-sobrescrever uma janela recente para "curar" esse ajuste sempre
+# que um provento é declarado. Mantida menor que antes (30 em vez de
+# 90 dias) para reduzir a exposição a respostas ruins/parciais do
+# yfinance a cada sync.
+LOOKBACK_DAYS_HEALING = 30
+
+# Variação diária máxima considerada plausível para um ajuste de
+# dividendo/JCP normal. Qualquer novo valor que se desvie do valor já
+# salvo mais que isso é tratado como suspeito (provável dado ruim
+# vindo do yfinance) e NÃO sobrescreve o que já está no banco.
+MAX_PLAUSIBLE_CHANGE_PCT = 0.08  # 8%
 
 # ----------------------------------------------------------------------------------------------- #
 # Funções auxiliares
@@ -60,16 +64,92 @@ def last_date(table_name):
 
 
 def healed_start_date(table_name, lookback_days=LOOKBACK_DAYS_HEALING):
-    """
-    Retorna a última data salva menos `lookback_days`, para que o
-    próximo fetch reescreva (upsert) a janela recente com o fator de
-    ajuste de proventos mais atual, em vez de só buscar dados novos.
-    """
 
     ultima = pd.to_datetime(last_date(table_name))
     inicio = ultima - pd.Timedelta(days=lookback_days)
 
     return inicio.strftime("%Y-%m-%d")
+
+
+def fetch_existing_rows(table_name, start_date, key_columns):
+    """
+    Busca do Supabase os registros já salvos a partir de `start_date`,
+    para servir de referência na validação (evita comparar contra
+    nada e sobrescrever tudo às cegas).
+    """
+
+    response = (
+        supabase
+        .table(table_name)
+        .select("*")
+        .gte("Date", start_date)
+        .execute()
+    )
+
+    existing = pd.DataFrame(response.data)
+
+    if existing.empty:
+        return existing
+
+    existing["Date"] = existing["Date"].astype(str)
+
+    return existing
+
+
+def validate_tickers_df(new_df, table_name="historical_tickers"):
+    """
+    Compara cada linha nova (Date, Ticker) com o valor já salvo no
+    Supabase, se existir. Se a variação do 'Close' for maior que
+    MAX_PLAUSIBLE_CHANGE_PCT, a linha é considerada suspeita (provável
+    resposta ruim/parcial do yfinance) e é DESCARTADA do upsert -
+    preferimos manter o dado antigo a corromper o histórico.
+    """
+
+    if new_df.empty:
+        return new_df
+
+    new_df = new_df.copy()
+    new_df["Date"] = new_df["Date"].astype(str)
+
+    start_date = new_df["Date"].min()
+    existing = fetch_existing_rows(table_name, start_date, ["Date", "Ticker"])
+
+    if existing.empty:
+        return new_df
+
+    merged = new_df.merge(
+        existing[["Date", "Ticker", "Close"]],
+        on=["Date", "Ticker"],
+        how="left",
+        suffixes=("", "_old")
+    )
+
+    tem_referencia = merged["Close_old"].notna()
+
+    variacao = (
+        (merged["Close"] - merged["Close_old"]).abs()
+        / merged["Close_old"].abs()
+    )
+
+    suspeita = tem_referencia & (
+        merged["Close"].isna()
+        | (merged["Close"] <= 0)
+        | (variacao > MAX_PLAUSIBLE_CHANGE_PCT)
+    )
+
+    if suspeita.any():
+
+        descartadas = merged.loc[
+            suspeita, ["Date", "Ticker", "Close", "Close_old"]
+        ]
+
+        print(
+            "[sync_database] Linhas suspeitas descartadas da atualização "
+            f"(variação > {MAX_PLAUSIBLE_CHANGE_PCT:.0%} ou valor inválido):\n"
+            f"{descartadas.to_string(index=False)}"
+        )
+
+    return new_df.loc[~suspeita].reset_index(drop=True)
 
 
 def upsert_dataframe(df, table_name, on_conflict):
@@ -106,7 +186,6 @@ def upsert_dataframe(df, table_name, on_conflict):
 def sync_database(tickers):
 
     # Histórico ações -----------------------------------------------------
-    # (afetado por dividendos/JCP -> precisa da janela de "cura")
 
     if table_is_empty("historical_tickers"):
 
@@ -118,10 +197,11 @@ def sync_database(tickers):
         inicio = healed_start_date("historical_tickers")
 
         df = get_historical_data_tickers(tickers, start=inicio)
+        df = validate_tickers_df(df, "historical_tickers")
+
         upsert_dataframe(df, "historical_tickers", "Date,Ticker")
 
     # Histórico ativos ------------------------------------------------------
-    # (índices/câmbio não sofrem ajuste retroativo por proventos, mantém incremental)
 
     if table_is_empty("historical_assets"):
 
